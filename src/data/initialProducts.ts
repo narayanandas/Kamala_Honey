@@ -33,7 +33,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'Premium soft Arabian dates soaked completely in natural honey. Rich in iron, fibers, and natural sugars to boost your stamina.',
     category: 'Honey Dates',
     rating: 4.9,
-    image: 'https://images.unsplash.com/photo-1569870499705-504209102bd6?auto=format&fit=crop&q=80&w=500',
+    image: 'https://res.cloudinary.com/dlddzqqnw/image/upload/v1779906185/Gemini_Generated_Image_mu1lfmmu1lfmmu1l_ulpujy.png',
     inventory: 60,
     ingredients: ['Imported Seedless Dates', 'Thirunelveli Pure Rock Honey']
   },

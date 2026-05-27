@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../services/storeContext';
 import { NavTab } from '../types';
-import { CreditCard, ArrowLeft, Upload, CheckCircle2, MessageSquare, ShieldCheck, QrCode } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ShieldCheck, ArrowLeft, Send, CheckCircle2, MessageCircle, MapPin, ClipboardList } from 'lucide-react';
 
 export const CheckoutPage: React.FC = () => {
   const {
@@ -10,90 +9,73 @@ export const CheckoutPage: React.FC = () => {
     cartTotalAfterCoupon,
     placeOrder,
     currentUser,
-    setActiveTab
+    setActiveTab,
+    couponCode,
+    shippingCost,
+    cartTotalBeforeCoupon
   } = useStore();
-
-  // Step state
-  const [step, setStep] = useState<1 | 2>(1);
 
   // Form inputs
   const [name, setName] = useState(currentUser?.name || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [address, setAddress] = useState(currentUser?.address || '');
   const [district, setDistrict] = useState(currentUser?.district || 'Thirunelveli');
-  const [state, setState] = useState(currentUser?.state || 'Tamil Nadu');
+  const [state] = useState('Tamil Nadu');
   const [pincode, setPincode] = useState(currentUser?.pincode || '');
-
-  // Payment states
-  const [paymentScreenshot, setPaymentScreenshot] = useState<string>('');
-  const [fileName, setFileName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState<any>(null);
 
-  // TAMIL NADU DISTRICT LIST FOR SEAMLESS USER SELECTION
+  // TAMIL NADU DISTRICT LIST
   const tamilNaduDistricts = [
-    'Thirunelveli', 'Chennai', 'Coimbatore', 'Madurai', 'Trichy', 'Salem', 
-    'Kanyakumari', 'Tuticorin', 'Tenkasi', 'Virudhunagar', 'Erode', 'Vellore',
+    'Thirunelveli', 'Tenkasi', 'Tuticorin', 'Kanyakumari', 'Madurai', 'Chennai', 
+    'Coimbatore', 'Trichy', 'Salem', 'Virudhunagar', 'Erode', 'Vellore',
     'Thanjavur', 'Kanchipuram', 'Tiruvallur', 'Tiruppur', 'Dindigul', 'Karur'
   ];
 
-  const handleNextStep = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !phone.trim() || !address.trim() || !pincode.trim()) {
-      alert('Please fill out all required shipping details.');
-      return;
-    }
-    setStep(2);
-  };
-
-  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPaymentScreenshot(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Automated WhatsApp Message generator
-  const getWhatsAppMessageRaw = (orderId: string, itemsList: any[], totalAmt: number) => {
-    const itemsText = itemsList.map(item => `🐝 *${item.name}* (Qty: ${item.quantity}) - ₹${item.price * item.quantity}`).join('\n');
+  // WhatsApp Message Formatter
+  const getWhatsAppCheckoutMessage = (orderId: string, itemsList: any[], totalAmt: number) => {
+    const itemsText = itemsList.map((item, idx) => `  ${idx + 1}. *${item.name}* (Qty: ${item.quantity}) - ₹${item.price * item.quantity}`).join('\n');
+    const discountText = couponCode ? `\n🎁 *Coupon Code:* ${couponCode}` : '';
+    
     return `*KAMALA NATURAL HONEY FARM - NEW ORDER* 🍯
 ---------------------------------------------
 *Order ID:* ${orderId}
-*Customer Name:* ${name}
-*WhatsApp Phone:* ${phone}
-*Delivery Address:* 
-${address}, ${district}, ${state} - ${pincode}
 
-*Products Selected:*
+👤 *Customer Details:*
+• *Name:* ${name}
+• *WhatsApp Phone:* ${phone}
+
+📍 *Delivery Location:*
+• *Address:* ${address}
+• *District/Region:* ${district}
+• *State:* ${state}
+• *PIN Code:* ${pincode}
+
+📦 *Ordered Items Catalog:*
 ${itemsText}
 
 ---------------------------------------------
-*Tamil Nadu Flat Shipping Included*
-*Total Outstanding:* ₹${totalAmt}
-*Payment Mode:* UPI Transfer (kamalahoneyfarm@upi)
+⭐ *Tamil Nadu Freight:* ${shippingCost === 0 ? 'FREE Shipping' : `₹${shippingCost}`} ${discountText}
+💰 *Total Outstanding Invoice Amount:* ₹${totalAmt}
 ---------------------------------------------
-_Thank you for supporting our traditional honey farm!_`;
+
+Hello Kamala Farm, I have just completed my order details on your app. Please verify my delivery pin codes and guide me with the immediate dispatch/payment instructions! Thank you!`;
   };
 
-  const executeWhatsAppRedirect = (orderId: string, itemsList: any[], totalAmt: number) => {
-    const formattedText = getWhatsAppMessageRaw(orderId, itemsList, totalAmt);
-    const link = `https://wa.me/917708510872?text=${encodeURIComponent(formattedText)}`;
-    window.open(link, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleFinalSubmit = async () => {
-    if (!paymentScreenshot) {
-      alert('Please select and upload your UPI Payment receipt screenshot text or picture to fulfill transaction.');
+  const handleWhatsAppCheckoutSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !phone.trim() || !address.trim() || !pincode.trim()) {
+      alert('Please fill out all delivery and contact details fields.');
+      return;
+    }
+    if (pincode.trim().length !== 6) {
+      alert('Tamil Nadu PIN codes must be exactly 6 digits.');
       return;
     }
 
     setSubmitting(true);
     try {
+      // Create order locally in the LocalStorage DB
       const order = await placeOrder({
         name,
         phone,
@@ -101,55 +83,86 @@ _Thank you for supporting our traditional honey farm!_`;
         district,
         state,
         pincode,
-        paymentProof: paymentScreenshot
+        paymentProof: 'WhatsApp Direct Fulfill' // Set explicit indicator that no raw billing block is required
       });
 
       setSubmittedOrder(order);
       setSubmitting(false);
 
-      // Trigger automatic WhatsApp redirect after writing order
-      executeWhatsAppRedirect(order.orderId, order.items, order.totalAmount);
-    } catch (e) {
-      console.error(e);
-      alert('Payment authorization failed. Resubmit screenshot file.');
+      // Instantly open WhatsApp API redirect
+      const message = getWhatsAppCheckoutMessage(order.orderId, order.items, order.totalAmount);
+      const link = `https://wa.me/917708510872?text=${encodeURIComponent(message)}`;
+      window.open(link, '_blank', 'noreferrer,noopener');
+    } catch (err) {
+      console.error(err);
+      alert('Unable to process local checkout. Try again.');
       setSubmitting(false);
     }
   };
+
+  if (cart.length === 0 && !submittedOrder) {
+    return (
+      <div className="py-20 px-4 max-w-7xl mx-auto text-center space-y-4">
+        <span className="text-3xl">🍯</span>
+        <h3 className="text-lg font-black text-honey-brown dark:text-white">Your Checkout Cart is Empty</h3>
+        <p className="text-xs text-honey-brown/60 dark:text-honey-warm/60 max-w-sm mx-auto font-sans leading-relaxed">
+          Please add delicious items from our catalog into your cart before proceeding to WhatsApp coordinates verification.
+        </p>
+        <button
+          onClick={() => setActiveTab(NavTab.SHOP)}
+          className="px-6 py-3 bg-honey-brown text-white dark:bg-honey-gold dark:text-honey-brown font-black text-xs uppercase rounded-xl"
+        >
+          Browse Honey Products
+        </button>
+      </div>
+    );
+  }
 
   if (submittedOrder) {
     return (
       <div className="py-16 px-4 max-w-2xl mx-auto text-center space-y-6">
         <div className="flex justify-center">
-          <div className="p-4 bg-emerald-100 text-forest-green rounded-full shadow-inner animate-pulse">
+          <div className="p-4 bg-[#FFF8E7] text-[#D4A017] rounded-full shadow-inner border border-honey-gold/30">
             <CheckCircle2 size={54} />
           </div>
         </div>
 
-        <h2 className="text-3xl font-black text-honey-brown dark:text-white font-heading">Order Placed Successfully!</h2>
+        <h2 className="text-3xl font-bold font-heading text-honey-brown dark:text-white">Order Details Compiled!</h2>
         
-        <div className="p-6 bg-white dark:bg-charcoal border border-honey-brown/10 dark:border-honey-gold/15 rounded-2xl shadow-sm text-left space-y-3 font-sans">
-          <p className="text-xs font-black text-honey-brown/50 dark:text-honey-warm/50 uppercase tracking-widest">Order ID Metadata</p>
-          <p className="text-sm font-bold text-honey-brown dark:text-honey-gold">ID: <span className="font-mono text-base">{submittedOrder.orderId}</span></p>
-          <p className="text-xs text-honey-brown/70 dark:text-honey-warm/70">
-            A copy of this invoice has been archived in the database catalog. Your order is pending verification by our admin farm clerk in Thirunelveli.
-          </p>
-          <div className="border-t border-honey-brown/5 pt-3 text-xs space-y-1">
-            <p><strong>Customer:</strong> {submittedOrder.customerName}</p>
-            <p><strong>Shipping Pin:</strong> {submittedOrder.pincode}</p>
-            <p><strong>Total Amount Paid:</strong> ₹{submittedOrder.totalAmount}</p>
+        <p className="text-xs text-honey-brown/75 dark:text-honey-warm/75 max-w-md mx-auto leading-relaxed">
+          Your order has been recorded into our local database. Please proceed to WhatsApp to complete your transaction with our farm clerks!
+        </p>
+
+        <div className="p-6 bg-white dark:bg-charcoal border border-honey-brown/10 dark:border-honey-gold/15 rounded-3xl shadow-sm text-left space-y-3 font-sans">
+          <div className="flex justify-between items-center border-b border-honey-brown/5 pb-2">
+            <span className="text-xs font-bold text-honey-brown/40 uppercase tracking-widest font-mono">Invoice Records</span>
+            <span className="text-[10px] font-mono text-[#2E7D32] bg-[#2E7D32]/10 px-2 py-0.5 rounded-full font-bold">READY TO CHAT</span>
+          </div>
+          <p className="text-sm font-bold text-honey-brown dark:text-honey-gold">Order ID: <span className="font-mono text-base font-extrabold">{submittedOrder.orderId}</span></p>
+          
+          <div className="border-t border-honey-brown/5 pt-3 text-xs space-y-1 bg-honey-warm/10 p-3 rounded-xl">
+            <p><strong>Customer Name:</strong> {submittedOrder.customerName}</p>
+            <p><strong>Contact Phone:</strong> {submittedOrder.phone}</p>
+            <p><strong>Shipping Location:</strong> {submittedOrder.address}, {submittedOrder.district}, TN - {submittedOrder.pincode}</p>
+            <p className="mt-1 border-t border-honey-brown/5 pt-1"><strong>Total Cost:</strong> <span className="font-mono font-bold text-[#4E2F12] text-sm">₹{submittedOrder.totalAmount}</span></p>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 pt-4">
           <button
-            onClick={() => executeWhatsAppRedirect(submittedOrder.orderId, submittedOrder.items, submittedOrder.totalAmount)}
-            className="w-full py-3.5 bg-forest-green text-white font-extrabold text-xs uppercase rounded-xl hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2"
+            onClick={() => {
+              const formattedMsg = getWhatsAppCheckoutMessage(submittedOrder.orderId, submittedOrder.items, submittedOrder.totalAmount);
+              const link = `https://wa.me/917708510872?text=${encodeURIComponent(formattedMsg)}`;
+              window.open(link, '_blank', 'noopener,noreferrer');
+            }}
+            className="w-full py-4 bg-[#2E7D32] hover:bg-emerald-800 text-white font-extrabold text-xs uppercase rounded-xl transition-all flex items-center justify-center gap-2 shadow"
           >
-            <MessageSquare size={16} /> Re-send via WhatsApp
+            <MessageCircle size={16} /> Open farm WhatsApp support
           </button>
+          
           <button
             onClick={() => setActiveTab(NavTab.SHOP)}
-            className="w-full py-3.5 bg-honey-gold text-honey-brown font-extrabold text-xs uppercase rounded-xl hover:bg-honey-gold/90 transition-colors"
+            className="w-full py-4 border border-honey-brown/20 dark:border-honey-gold/20 hover:bg-honey-brown hover:text-white text-honey-brown dark:text-honey-gold font-extrabold text-xs uppercase rounded-xl transition-all"
           >
             Back to Catalog
           </button>
@@ -159,225 +172,164 @@ _Thank you for supporting our traditional honey farm!_`;
   }
 
   return (
-    <div className="py-10 px-4 mx-auto max-w-5xl sm:px-6 lg:px-8">
+    <div className="py-10 px-4 mx-auto max-w-5xl sm:px-6 lg:px-8 space-y-6">
       
-      {step === 2 && (
-        <button
-          onClick={() => setStep(1)}
-          className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-honey-brown/60 dark:text-honey-warm/60 mb-6 hover:text-honey-brown"
-        >
-          <ArrowLeft size={14} /> Back to shipping details
-        </button>
-      )}
+      <button
+        onClick={() => setActiveTab(NavTab.CART)}
+        className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-honey-brown/60 dark:text-honey-warm/60 hover:text-honey-brown"
+      >
+        <ArrowLeft size={14} /> Back to Cart
+      </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* COLUMN LEFT: Main Multi-step submission form */}
-        <div className="lg:col-span-7 bg-white dark:bg-charcoal p-6 sm:p-8 rounded-3xl border border-honey-brown/5 dark:border-honey-gold/10 shadow-sm">
-          
-          {step === 1 ? (
-            <form onSubmit={handleNextStep} className="space-y-6">
-              <div className="border-b border-honey-brown/5 pb-3">
-                <h3 className="font-heading font-black text-lg text-honey-brown dark:text-white">Shipping Address</h3>
-                <p className="text-[11px] text-honey-brown/60 dark:text-honey-warm/60">Enter the coordinates where your honey items will be delivered</p>
-              </div>
+        {/* COLUMN LEFT: Shipping/Contact details */}
+        <div className="lg:col-span-7 bg-white dark:bg-charcoal p-6 sm:p-8 rounded-3xl border border-honey-brown/5 dark:border-honey-gold/10 shadow-sm space-y-6">
+          <div className="border-b border-honey-brown/5 pb-3">
+            <span className="text-[10px] uppercase font-bold text-[#2E7D32] tracking-widest block mb-0.5">Direct Checkout System</span>
+            <h3 className="font-heading font-bold text-2xl text-honey-brown dark:text-white">Shipping Details</h3>
+            <p className="text-[11px] text-honey-brown/60 dark:text-honey-warm/60 mt-1 leading-normal">
+              No backend processing, login, or online card payment required. Submit your exact delivery contact below to generate your invoice and complete checkout instantly over our direct WhatsApp farm line.
+            </p>
+          </div>
 
-              <div className="space-y-4 text-xs font-semibold">
-                <div>
-                  <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold mb-1.5">Recipient Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-3 bg-honey-warm/15 text-xs rounded-xl border border-honey-brown/10 dark:border-honey-gold/15 focus:outline-none focus:ring-1 focus:ring-honey-brown"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold mb-1.5">WhatsApp Number *</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="+91 or 10-digit number"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-3 bg-honey-warm/15 text-xs rounded-xl border border-honey-brown/10 dark:border-honey-gold/15 focus:outline-none focus:ring-1 focus:ring-honey-brown"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold mb-1.5">Street Address *</label>
-                  <textarea
-                    required
-                    rows={3}
-                    placeholder="Door no, street address, area location coordinates"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="w-full px-3 py-3 bg-honey-warm/15 text-xs rounded-xl border border-honey-brown/10 dark:border-honey-gold/15 focus:outline-none focus:ring-1 focus:ring-honey-brown"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold mb-1.5">District / Region *</label>
-                    <select
-                      value={district}
-                      onChange={(e) => setDistrict(e.target.value)}
-                      className="w-full px-3 py-3 bg-honey-warm/15 text-xs rounded-xl border border-honey-brown/10 dark:border-honey-gold/15 focus:outline-none"
-                    >
-                      {tamilNaduDistricts.map(d => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold mb-1.5">State *</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={state}
-                      className="w-full px-3 py-3 bg-honey-brown/5 text-xs rounded-xl border border-honey-brown/10 text-honey-brown/50 cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold mb-1.5">PIN Code *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="6-digit PIN"
-                      maxLength={6}
-                      value={pincode}
-                      onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
-                      className="w-full px-3 py-3 bg-honey-warm/15 text-xs rounded-xl border border-honey-brown/10 dark:border-honey-gold/15 focus:outline-none focus:ring-1 focus:ring-honey-brown"
-                    />
-                  </div>
-                </div>
-
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-4 bg-honey-brown dark:bg-honey-gold text-white dark:text-honey-brown font-extrabold text-xs uppercase tracking-wider rounded-xl hover:shadow shadow-sm"
-              >
-                Proceed to UPI Payment Options ➔
-              </button>
-            </form>
-          ) : (
-            <div className="space-y-6">
-              <div className="border-b border-honey-brown/5 pb-3">
-                <h3 className="font-heading font-black text-lg text-honey-brown dark:text-white flex items-center gap-1.5">
-                  <CreditCard className="text-honey-gold" size={20} /> UPI Payment Authorization
-                </h3>
-                <p className="text-[11px] text-honey-brown/60 dark:text-honey-warm/60">Follow instructions and scan prompt QR code to pay instantly</p>
-              </div>
-
-              {/* QR Block structure with exact specifications */}
-              <div className="bg-honey-warm/30 dark:bg-charcoal/50 p-6 rounded-2xl border border-honey-brown/5 flex flex-col sm:flex-row items-center gap-6 justify-center">
-                
-                {/* Styled Vector QR Placeholder */}
-                <div className="bg-white p-4 rounded-xl shadow border-2 border-honey-gold/60 relative group flex flex-col justify-center items-center">
-                  <div className="w-40 h-40 flex items-center justify-center text-honey-brown bg-amber-50 rounded border-2 border-dashed border-honey-brown/10">
-                    <QrCode size={135} strokeWidth={1} className="text-honey-brown/90" />
-                  </div>
-                  <span className="text-[9px] uppercase tracking-widest font-bold text-honey-brown/50 pt-2 font-mono">kamalahoneyfarm@upi</span>
-                </div>
-
-                <div className="space-y-3 text-center sm:text-left">
-                  <span className="text-[10px] bg-honey-gold/20 text-honey-brown dark:text-amber-300 font-black uppercase tracking-wider px-2 py-0.5 rounded">QR Verification Ready</span>
-                  <p className="text-sm font-bold text-honey-brown dark:text-white">Amount Outstanding: <span className="text-xl font-black font-mono">₹{cartTotalAfterCoupon}</span></p>
-                  
-                  <div className="space-y-1.5 text-xs text-honey-brown/80 dark:text-honey-warm/80 leading-normal">
-                    <p><strong>Official UPI ID:</strong> <span className="font-mono bg-white dark:bg-charcoal/90 px-1 py-0.5 border border-amber-200 text-honey-brown select-all font-semibold">kamalahoneyfarm@upi</span></p>
-                    <p className="text-[10px] italic">1. Scan QR using GPay, PhonePe, Paytm, or BHIM.</p>
-                    <p className="text-[10px] italic">2. After payment success, select and upload the transaction screenshot below.</p>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Receipt proof screenshot uploader */}
-              <div className="space-y-3 pt-2">
-                <label className="block text-xs font-black uppercase tracking-wider text-honey-brown dark:text-honey-gold">Upload Receipt Screenshot File *</label>
-                
-                <div className="relative border-2 border-dashed border-honey-brown/10 dark:border-honey-gold/20 hover:border-honey-gold/65 rounded-2xl bg-honey-warm/10 hover:bg-honey-warm/25 transition-all p-6 text-center">
-                  <input
-                    type="file"
-                    required
-                    accept="image/*"
-                    onChange={handleScreenshotChange}
-                    className="absolute inset-0 cursor-pointer opacity-0"
-                  />
-                  <div className="flex flex-col items-center">
-                    <Upload size={24} className="text-honey-gold animate-bounce mb-2" />
-                    <p className="text-xs font-bold text-honey-brown dark:text-honey-warm">
-                      {fileName ? `Selected: ${fileName}` : 'Click here or drop your receipt file'}
-                    </p>
-                    <p className="text-[10px] text-honey-brown/50 dark:text-honey-warm/40 mt-1 font-mono">PNG, JPG or JPEG allowed</p>
-                  </div>
-                </div>
-
-                {paymentScreenshot && (
-                  <div className="text-xs p-3 bg-emerald-50 text-forest-green font-bold rounded-lg flex items-center gap-2 border border-emerald-200">
-                    <span className="text-base">📸</span> Payment screenshot loaded. Click "Place Order" to finalize.
-                  </div>
-                )}
-              </div>
-
-              {/* Submitting CTAs */}
-              <div className="pt-4 flex flex-col sm:flex-row gap-3 text-xs font-black">
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={handleFinalSubmit}
-                  className="w-full py-4 uppercase bg-forest-green text-white font-extrabold rounded-xl hover:bg-emerald-800 disabled:opacity-50 tracking-wider shadow"
-                >
-                  {submitting ? 'Archiving Order details...' : 'Place Order via UPI verification ➔'}
-                </button>
-              </div>
-
+          <form onSubmit={handleWhatsAppCheckoutSubmit} className="space-y-4 text-xs font-semibold">
+            <div>
+              <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold mb-1.5">Recipient Full Name *</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Karthikeyan Bala"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-3 bg-honey-warm/15 text-xs rounded-xl border border-honey-brown/10 dark:border-honey-gold/15 focus:outline-none focus:ring-1 focus:ring-honey-brown transition"
+              />
             </div>
-          )}
 
+            <div>
+              <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold mb-1.5">WhatsApp Mobile Number *</label>
+              <input
+                type="tel"
+                required
+                placeholder="e.g. 9845112233"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-3 py-3 bg-honey-warm/15 text-xs rounded-xl border border-honey-brown/10 dark:border-honey-gold/15 focus:outline-none focus:ring-1 focus:ring-honey-brown transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold mb-1.5">Full Shipping Street Address *</label>
+              <textarea
+                required
+                rows={3}
+                placeholder="Door no, Street name, Area coordinates, Near Landmark location detail"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full px-3 py-3 bg-honey-warm/15 text-xs rounded-xl border border-honey-brown/10 dark:border-honey-gold/15 focus:outline-none focus:ring-1 focus:ring-honey-brown transition"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold mb-1.5">District / Town *</label>
+                <select
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  className="w-full px-3 py-3 bg-honey-warm/15 text-xs rounded-xl border border-honey-brown/10 dark:border-honey-gold/15 focus:outline-none"
+                >
+                  {tamilNaduDistricts.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold mb-1.5">State *</label>
+                <input
+                  type="text"
+                  disabled
+                  value={state}
+                  className="w-full px-3 py-3 bg-honey-brown/5 text-xs rounded-xl border border-honey-brown/10 text-honey-brown/50 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold mb-1.5">PIN Code *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="6-digit PIN"
+                  maxLength={6}
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-3 py-3 bg-honey-warm/15 text-xs rounded-xl border border-honey-brown/10 dark:border-honey-gold/15 focus:outline-none focus:ring-1 focus:ring-honey-brown transition"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-4 mt-2 uppercase bg-[#2E7D32] hover:bg-emerald-800 text-white font-extrabold rounded-xl disabled:opacity-50 tracking-wider shadow transition-all flex items-center justify-center gap-2 text-xs"
+            >
+              <MessageCircle size={15} />
+              {submitting ? 'Compiling Order Info...' : 'Place WhatsApp Farm Order ➔'}
+            </button>
+          </form>
         </div>
 
-        {/* COLUMN RIGHT: Cart brief checklist summary */}
+        {/* COLUMN RIGHT: Cart Items Summary Checklist */}
         <div className="lg:col-span-5 bg-white dark:bg-charcoal p-6 rounded-3xl border border-honey-brown/5 dark:border-honey-gold/10 shadow-sm space-y-4">
-          <h3 className="font-heading font-black text-sm uppercase tracking-wider text-honey-brown dark:text-white border-b border-honey-brown/5 pb-3">Checkout Checklist</h3>
+          <div className="border-b border-honey-brown/5 pb-3">
+            <h3 className="font-heading font-bold text-lg text-honey-brown dark:text-white flex items-center gap-1.5">
+              <ClipboardList size={18} className="text-honey-gold" /> Order Summary
+            </h3>
+          </div>
 
-          {cart.map((item) => (
-            <div key={item.productId} className="flex gap-3 justify-between items-center text-xs">
-              <div className="flex items-center gap-2">
-                <img src={item.image} alt="" className="w-10 h-10 object-cover rounded border border-honey-brown/10" />
-                <div>
-                  <h4 className="font-bold text-honey-brown dark:text-white line-clamp-1">{item.name}</h4>
-                  <p className="text-[10px] text-honey-brown/40 font-mono">Qty: {item.quantity}</p>
+          <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+            {cart.map((item) => (
+              <div key={item.productId} className="flex gap-3 justify-between items-center text-xs">
+                <div className="flex items-center gap-2">
+                  <img src={item.image} alt="" className="w-10 h-10 object-cover rounded-lg border border-honey-brown/10" />
+                  <div>
+                    <h4 className="font-bold text-honey-brown dark:text-white line-clamp-1">{item.name}</h4>
+                    <p className="text-[10px] text-honey-brown/45 font-mono">Qty: {item.quantity}</p>
+                  </div>
                 </div>
+                <span className="font-mono font-bold text-honey-brown dark:text-honey-gold">₹{item.price * item.quantity}</span>
               </div>
-              <span className="font-mono font-bold text-honey-brown dark:text-honey-gold">₹{item.price * item.quantity}</span>
-            </div>
-          ))}
+            ))}
+          </div>
 
           <div className="border-t border-honey-brown/5 pt-4 space-y-2 text-xs">
-            <div className="flex justify-between">
-              <span>Delivery State:</span>
-              <span className="font-bold">Tamil Nadu (Standard)</span>
+            <div className="flex justify-between text-honey-brown/70 dark:text-honey-warm/75">
+              <span>Cart Subtotal:</span>
+              <span className="font-mono">₹{cartTotalBeforeCoupon}</span>
             </div>
-            <div className="flex justify-between items-baseline text-sm font-bold text-honey-brown dark:text-white">
-              <span>Total cost:</span>
+            {couponCode && (
+              <div className="flex justify-between font-bold text-[#2E7D32]">
+                <span>Coupon ({couponCode}):</span>
+                <span className="font-mono">-₹{cartTotalBeforeCoupon - (cartTotalAfterCoupon - shippingCost)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-honey-brown/70 dark:text-honey-warm/75">
+              <span>Delivery Flat Freight:</span>
+              <span className="font-mono">{shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}</span>
+            </div>
+            
+            <div className="flex justify-between items-baseline pt-2 border-t border-honey-brown/5 text-sm font-bold text-honey-brown dark:text-white">
+              <span>Estimated Invoice Total:</span>
               <span className="text-xl font-black text-honey-gold font-mono">₹{cartTotalAfterCoupon}</span>
             </div>
           </div>
 
-          <div className="p-3 bg-amber-50 rounded-xl space-y-1 mt-4">
-            <span className="text-[10px] text-honey-brown font-black uppercase tracking-wider flex items-center gap-1">
-              <ShieldCheck size={12} className="text-forest-green" /> Purchase Protection
+          <div className="p-3 bg-[#FFF8E7] rounded-xl space-y-1 border border-honey-gold/20">
+            <span className="text-[10px] text-honey-brown font-bold uppercase tracking-wider flex items-center gap-1">
+              <ShieldCheck size={12} className="text-forest-green" /> Authenticated Purity
             </span>
-            <p className="text-[10px] text-honey-brown/60 leading-normal font-sans">
-              All transactions are validated physically inside the apiary backoffice in Tirunelveli. Refunds are credited instantly.
+            <p className="text-[9px] text-honey-brown/65 leading-normal font-sans">
+              All honey is slow-cured without chemical heating or high pressure filters. Orders placed are hand-packaged directly at Thirunelveli apiaries.
             </p>
           </div>
         </div>

@@ -4,7 +4,7 @@ import { getFirestore, doc, getDocFromServer, collection, getDocs, getDoc, setDo
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Detect if we are using the local placeholder config or real Firebase config
-const isPlaceholderConfig = !firebaseConfig.apiKey || firebaseConfig.apiKey.includes('placeholder') || firebaseConfig.projectId === 'mock-project-id';
+const isPlaceholderConfig = true;
 
 let app;
 let db: any = null;

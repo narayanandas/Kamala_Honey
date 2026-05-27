@@ -116,7 +116,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [maxPrice, setMaxPrice] = useState(600);
 
   // Cart
-  const [cart, setCart] = useState<OrderItem[]>([]);
+  const [cart, setCart] = useState<OrderItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('kamala_honey_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0); // e.g. 10 for 10%
   const [shippingCost, setShippingCost] = useState(50); // Flat shipping default, free above 1000
@@ -142,6 +149,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const data = await dbStore.getAllOrders();
     setOrders(data);
   };
+
+  useEffect(() => {
+    localStorage.setItem('kamala_honey_cart', JSON.stringify(cart));
+  }, [cart]);
 
   useEffect(() => {
     refreshProducts();

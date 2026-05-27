@@ -21,7 +21,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'Small organic baby gooseberry pieces soaked in amber forest honey. Easy for children to consume and great for high energy.',
     category: 'Amla Honey',
     rating: 4.7,
-    image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&q=80&w=500',
+    image: 'https://res.cloudinary.com/dlddzqqnw/image/upload/v1779905674/Gemini_Generated_Image_arcgdxarcgdxarcg_xmvn7x.png',
     inventory: 45,
     ingredients: ['Small Country Gooseberry Pieces', 'Pure Farm Honey']
   },

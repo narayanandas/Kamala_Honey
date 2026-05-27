@@ -1,0 +1,105 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information and address details",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth unique ID" },
+        "email": { "type": "string", "description": "User email address" },
+        "name": { "type": "string", "description": "Customer display name" },
+        "phone": { "type": "string", "description": "Contact number" },
+        "address": { "type": "string", "description": "Shipping street address" },
+        "district": { "type": "string", "description": "Shipping district" },
+        "state": { "type": "string", "description": "Shipping state" },
+        "pincode": { "type": "string", "description": "Shipping PIN code" },
+        "role": { "type": "string", "enum": ["customer", "admin"], "description": "User role access level" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Product": {
+      "title": "Honey Product",
+      "description": "Honey and food products catalog item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Product identifier" },
+        "name": { "type": "string", "description": "Product English Name" },
+        "tamilName": { "type": "string", "description": "Product Tamil Name" },
+        "price": { "type": "number", "description": "Price in INR" },
+        "description": { "type": "string", "description": "Short product description" },
+        "category": { "type": "string", "description": "Product category" },
+        "rating": { "type": "number", "description": "Average rating out of 5" },
+        "image": { "type": "string", "description": "Product image source" },
+        "isBestSeller": { "type": "boolean", "description": "Is this a best seller item?" },
+        "inventory": { "type": "number", "description": "Stock count" }
+      },
+      "required": ["id", "name", "price", "category"]
+    },
+    "Order": {
+      "title": "Customer Order",
+      "description": "Details of customer checkout order",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string", "description": "Unique Order ID" },
+        "customerName": { "type": "string", "description": "Customer full name" },
+        "phone": { "type": "string", "description": "Phone number" },
+        "address": { "type": "string", "description": "Shipping street address" },
+        "district": { "type": "string", "description": "District name" },
+        "state": { "type": "string", "description": "State name" },
+        "pincode": { "type": "string", "description": "6-digit PIN code" },
+        "totalAmount": { "type": "number", "description": "Total order aggregate value" },
+        "status": { "type": "string", "enum": ["Pending", "Processing", "Shipped", "Delivered"], "description": "Order progression status" },
+        "upiScreenshot": { "type": "string", "description": "UPI payment screenshot base64 proof text or URL" },
+        "userId": { "type": "string", "description": "Auth identifier of purchasing user" },
+        "createdAt": { "type": "string", "description": "Timestamp when order was placed" }
+      },
+      "required": ["orderId", "customerName", "phone", "address", "totalAmount", "status", "createdAt"]
+    },
+    "Review": {
+      "title": "Product Review",
+      "description": "User reviews on honey products",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique review identifier" },
+        "productId": { "type": "string", "description": "Product reference ID" },
+        "reviewerName": { "type": "string", "description": "Name of reviewer" },
+        "rating": { "type": "number", "description": "Rating out of 5" },
+        "comment": { "type": "string", "description": "User critique text" },
+        "createdAt": { "type": "string", "description": "Trained date-time text" }
+      },
+      "required": ["id", "productId", "reviewerName", "rating", "comment"]
+    },
+    "Wishlist": {
+      "title": "User Wishlist",
+      "description": "Saved products for user reference",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "User identifier" },
+        "productIds": { "type": "array", "description": "Array of saved product identifier strings" }
+      },
+      "required": ["userId", "productIds"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User registration profiles and shipping info"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Catalog of honey farming products"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Transactions and shipping records"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Verified purchase product feedback"
+    },
+    "/wishlists/{userId}": {
+      "schema": "Wishlist",
+      "description": "User wishlist configurations"
+    }
+  }
+}

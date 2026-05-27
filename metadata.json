@@ -1,0 +1,6 @@
+{
+  "name": "Kamala Natural Honey Farm",
+  "description": "Premium natural honey and traditional health products from Thirunelveli, Tamil Nadu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

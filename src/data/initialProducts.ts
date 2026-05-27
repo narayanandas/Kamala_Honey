@@ -45,7 +45,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'Assorted premium quality dried walnuts, green raisins, apricot slices blended in single-origin honey.',
     category: 'Dry Fruits',
     rating: 4.8,
-    image: 'https://images.unsplash.com/photo-1623428187969-5da2d8a6f157?auto=format&fit=crop&q=80&w=500',
+    image: 'https://res.cloudinary.com/dlddzqqnw/image/upload/v1779906744/Gemini_Generated_Image_afftvcafftvcafft_zgjhz3.png',
     inventory: 35,
     ingredients: ['Walnuts', 'Dried Apricot', 'Golden Raisins', 'Pure Stingless Bee Honey']
   },

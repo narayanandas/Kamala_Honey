@@ -9,7 +9,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'Whole big wild gooseberries soaked in premium wild forest honey. Packed with Vitamin C and iron, it aids digestion and strengthens immunity.',
     category: 'Amla Honey',
     rating: 4.8,
-    image: 'https://res.cloudinary.com/dlddzqqnw/image/upload/v1779903800/Gemini_Generated_Image_7vuisf7vuisf7vui_pvwkb6.png',
+    image: 'https://images.unsplash.com/photo-1587049365226-ac434a2c07d5?auto=format&fit=crop&q=80&w=500',
     inventory: 50,
     ingredients: ['Whole Indian Gooseberry (Amla)', '100% Pure Natural Forest Honey']
   },
@@ -21,7 +21,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'Small organic baby gooseberry pieces soaked in amber forest honey. Easy for children to consume and great for high energy.',
     category: 'Amla Honey',
     rating: 4.7,
-    image: 'https://res.cloudinary.com/dlddzqqnw/image/upload/v1779905674/Gemini_Generated_Image_arcgdxarcgdxarcg_xmvn7x.png',
+    image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&q=80&w=500',
     inventory: 45,
     ingredients: ['Small Country Gooseberry Pieces', 'Pure Farm Honey']
   },
@@ -33,7 +33,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'Premium soft Arabian dates soaked completely in natural honey. Rich in iron, fibers, and natural sugars to boost your stamina.',
     category: 'Honey Dates',
     rating: 4.9,
-    image: 'https://res.cloudinary.com/dlddzqqnw/image/upload/v1779906185/Gemini_Generated_Image_mu1lfmmu1lfmmu1l_ulpujy.png',
+    image: 'https://images.unsplash.com/photo-1569870499705-504209102bd6?auto=format&fit=crop&q=80&w=500',
     inventory: 60,
     ingredients: ['Imported Seedless Dates', 'Thirunelveli Pure Rock Honey']
   },
@@ -45,7 +45,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'Assorted premium quality dried walnuts, green raisins, apricot slices blended in single-origin honey.',
     category: 'Dry Fruits',
     rating: 4.8,
-    image: 'https://res.cloudinary.com/dlddzqqnw/image/upload/v1779906744/Gemini_Generated_Image_afftvcafftvcafft_zgjhz3.png',
+    image: 'https://images.unsplash.com/photo-1623428187969-5da2d8a6f157?auto=format&fit=crop&q=80&w=500',
     inventory: 35,
     ingredients: ['Walnuts', 'Dried Apricot', 'Golden Raisins', 'Pure Stingless Bee Honey']
   },

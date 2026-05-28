@@ -43,11 +43,9 @@ export const Header: React.FC = () => {
           
           {/* Logo & Brand Name */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavClick(NavTab.HOME)}>
-            <img
-              src="https://res.cloudinary.com/dlddzqqnw/image/upload/v1779902931/629709396_18142245394476616_8848105931985901562_n_kkgj74.jpg"
-              alt="Kamala Natural Honey Farm"
-              className="w-14 h-14 rounded-full object-cover shadow-md border-2 border-honey-gold shrink-0"
-            />
+            <div className="relative flex items-center justify-center w-12 h-12 rounded-full bg-honey-gold shadow-sm shrink-0">
+              <span className="text-white font-bold text-2xl font-heading">K</span>
+            </div>
             <div>
               <h1 className="text-honey-brown dark:text-honey-gold font-bold text-xl leading-none uppercase tracking-tight italic font-heading">
                 Kamala

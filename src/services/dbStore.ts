@@ -2,6 +2,7 @@ import { db, isPlaceholderConfig, OperationType, handleFirestoreError, auth } fr
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore';
 import { Product, Order, UserProfile, Review, Wishlist, OrderStatus } from '../types';
 import { INITIAL_PRODUCTS } from '../data/initialProducts';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 // Helper to get or initialize client local storage
 const LOCAL_STORAGE_KEYS = {
@@ -121,6 +122,34 @@ if (!localStorage.getItem(LOCAL_STORAGE_KEYS.ORDERS)) {
 export const dbStore = {
   // PRODUCTS
   async getAllProducts(): Promise<Product[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*');
+        if (!error && data && data.length > 0) {
+          const mapped: Product[] = data.map((row: any) => ({
+            id: row.id,
+            name: row.name,
+            tamilName: row.tamil_name || row.tamilName || row.name,
+            price: Number(row.price),
+            description: row.description || 'Directly packed under strict botanical and sanitary control in Kamala Farm apiary.',
+            category: row.category || 'Raw Wild Honey',
+            rating: Number(row.rating || 5),
+            image: row.image || 'https://images.unsplash.com/photo-1587049365226-ac434a2c07d5?auto=format&fit=crop&q=80&w=500',
+            inventory: Number(row.stock !== undefined ? row.stock : (row.inventory !== undefined ? row.inventory : 50)),
+            ingredients: Array.isArray(row.ingredients) ? row.ingredients : (row.ingredients ? JSON.parse(row.ingredients) : ['Pure Organics']),
+            isBestSeller: !!row.isBestSeller
+          }));
+          return mapped;
+        } else if (error) {
+          console.warn('Supabase query failed, falling back to local storage:', error.message);
+        }
+      } catch (err) {
+        console.error('Supabase fetch exception, falling back to local storage:', err);
+      }
+    }
+
     if (!isPlaceholderConfig && db) {
       const colPath = 'products';
       try {
@@ -139,6 +168,34 @@ export const dbStore = {
   },
 
   async addProduct(product: Product): Promise<void> {
+    // Save to local storage first for resilience
+    const list = getLocalStorage<Product[]>(LOCAL_STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+    list.push(product);
+    setLocalStorage(LOCAL_STORAGE_KEYS.PRODUCTS, list);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase
+          .from('products')
+          .insert([{
+            id: product.id,
+            name: product.name,
+            price: Number(product.price),
+            stock: Number(product.inventory), // stock maps to product.inventory
+            image: product.image,
+            category: product.category,
+            tamil_name: product.tamilName,
+            description: product.description,
+            rating: Number(product.rating || 5)
+          }]);
+        if (error) {
+          console.error('Supabase write error, products stored offline:', error.message);
+        }
+      } catch (err) {
+        console.error('Supabase write exception:', err);
+      }
+    }
+
     if (!isPlaceholderConfig && db) {
       const colPath = 'products';
       try {
@@ -148,13 +205,40 @@ export const dbStore = {
         handleFirestoreError(error, OperationType.WRITE, `${colPath}/${product.id}`);
       }
     }
-    // Fallback Local Mode
-    const list = getLocalStorage<Product[]>(LOCAL_STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
-    list.push(product);
-    setLocalStorage(LOCAL_STORAGE_KEYS.PRODUCTS, list);
   },
 
   async updateProduct(product: Product): Promise<void> {
+    // Save to local storage first for resilience
+    const list = getLocalStorage<Product[]>(LOCAL_STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+    const index = list.findIndex(p => p.id === product.id);
+    if (index !== -1) {
+      list[index] = product;
+      setLocalStorage(LOCAL_STORAGE_KEYS.PRODUCTS, list);
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase
+          .from('products')
+          .upsert([{
+            id: product.id,
+            name: product.name,
+            price: Number(product.price),
+            stock: Number(product.inventory), // stock maps to product.inventory
+            image: product.image,
+            category: product.category,
+            tamil_name: product.tamilName,
+            description: product.description,
+            rating: Number(product.rating || 5)
+          }]);
+        if (error) {
+          console.error('Supabase upsert error, products stored offline:', error.message);
+        }
+      } catch (err) {
+        console.error('Supabase upsert exception:', err);
+      }
+    }
+
     if (!isPlaceholderConfig && db) {
       const colPath = 'products';
       try {
@@ -164,16 +248,28 @@ export const dbStore = {
         handleFirestoreError(error, OperationType.WRITE, `${colPath}/${product.id}`);
       }
     }
-    // Fallback Local Mode
-    const list = getLocalStorage<Product[]>(LOCAL_STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
-    const index = list.findIndex(p => p.id === product.id);
-    if (index !== -1) {
-      list[index] = product;
-      setLocalStorage(LOCAL_STORAGE_KEYS.PRODUCTS, list);
-    }
   },
 
   async deleteProduct(id: string): Promise<void> {
+    // Save to local storage first for resilience
+    const list = getLocalStorage<Product[]>(LOCAL_STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+    const filtered = list.filter(p => p.id !== id);
+    setLocalStorage(LOCAL_STORAGE_KEYS.PRODUCTS, filtered);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase
+          .from('products')
+          .delete()
+          .eq('id', id);
+        if (error) {
+          console.error('Supabase delete error:', error.message);
+        }
+      } catch (err) {
+        console.error('Supabase delete exception:', err);
+      }
+    }
+
     if (!isPlaceholderConfig && db) {
       const colPath = 'products';
       try {
@@ -183,10 +279,6 @@ export const dbStore = {
         handleFirestoreError(error, OperationType.DELETE, `${colPath}/${id}`);
       }
     }
-    // Fallback Local Mode
-    const list = getLocalStorage<Product[]>(LOCAL_STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
-    const filtered = list.filter(p => p.id !== id);
-    setLocalStorage(LOCAL_STORAGE_KEYS.PRODUCTS, filtered);
   },
 
   // USERS / PROFILES

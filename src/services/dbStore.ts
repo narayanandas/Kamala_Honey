@@ -206,6 +206,14 @@ export const dbStore = {
       }
     }
   },
+  async updateProductStock(id: string, stock: number) {
+  const { error } = await supabase
+    .from('products')
+    .update({ stock })
+    .eq('id', id);
+
+  return !error;
+},
 
   async updateProduct(product: Product): Promise<void> {
     // Save to local storage first for resilience
@@ -318,20 +326,38 @@ export const dbStore = {
 
   // ORDERS
   async createOrder(order: Order): Promise<void> {
-    if (!isPlaceholderConfig && db) {
-      const colPath = 'orders';
-      try {
-        await setDoc(doc(db, colPath, order.orderId), order);
-        return;
-      } catch (error) {
-        handleFirestoreError(error, OperationType.WRITE, `${colPath}/${order.orderId}`);
-      }
-    }
-    // Fallback Local Mode
-    const list = getLocalStorage<Order[]>(LOCAL_STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
-    list.unshift(order);
-    setLocalStorage(LOCAL_STORAGE_KEYS.ORDERS, list);
-  },
+
+  if (isSupabaseConfigured && supabase) {
+    const { error } = await supabase
+      .from('orders')
+      .insert([{
+        order_id: order.orderId,
+        customer_name: order.customerName,
+        phone: order.phone,
+        address: order.address,
+        district: order.district,
+        state: order.state,
+        pincode: order.pincode,
+        total_amount: order.totalAmount,
+        status: order.status,
+        user_id: order.userId,
+        created_at: order.createdAt,
+        items: order.items
+      }]);
+
+    if (!error) return;
+
+    console.error(error);
+  }
+
+  const list = getLocalStorage<Order[]>(
+    LOCAL_STORAGE_KEYS.ORDERS,
+    INITIAL_ORDERS
+  );
+
+  list.unshift(order);
+  setLocalStorage(LOCAL_STORAGE_KEYS.ORDERS, list);
+},
 
   async getAllOrders(): Promise<Order[]> {
     if (!isPlaceholderConfig && db) {

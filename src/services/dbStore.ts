@@ -326,6 +326,7 @@ export const dbStore = {
 
   // ORDERS
   async createOrder(order: Order): Promise<void> {
+  console.log("CREATE ORDER CALLED", order);
 
   if (isSupabaseConfigured && supabase) {
 

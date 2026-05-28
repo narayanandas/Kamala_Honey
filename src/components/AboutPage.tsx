@@ -46,7 +46,7 @@ export const AboutPage: React.FC = () => {
           
           <div className="md:col-span-6 overflow-hidden rounded-3xl border border-honey-brown/5 relative group">
             <img
-              src="https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&q=80&w=800"
+              src="https://res.cloudinary.com/dlddzqqnw/image/upload/v1779966628/Gemini_Generated_Image_ielw6oielw6oielw_ulefpz.png"
               alt="Kamala Farm Apiary combs"
               className="w-full h-[380px] object-cover group-hover:scale-105 transition-transform duration-700"
               referrerPolicy="no-referrer"

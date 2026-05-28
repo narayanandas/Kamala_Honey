@@ -108,7 +108,7 @@ export const Hero: React.FC = () => {
               className="relative w-[320px] h-[400px] bg-honey-gold/20 rounded-t-[160px] rounded-b-2xl overflow-hidden border-4 border-white shadow-2xl group shrink-0"
             >
               <img
-                src="https://images.unsplash.com/photo-1587049365226-ac434a2c07d5?auto=format&fit=crop&q=80&w=600"
+                src="https://res.cloudinary.com/dlddzqqnw/image/upload/v1779966743/Gemini_Generated_Image_erm859erm859erm8_iclgwh.png"
                 alt="Kamala Natural Honey Farm Showcase"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[800ms]"
               />

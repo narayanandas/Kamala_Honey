@@ -328,7 +328,8 @@ export const dbStore = {
   async createOrder(order: Order): Promise<void> {
 
   if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase
+
+    const { data, error } = await supabase
       .from('orders')
       .insert([{
         order_id: order.orderId,
@@ -343,11 +344,13 @@ export const dbStore = {
         user_id: order.userId,
         created_at: order.createdAt,
         items: order.items
-      }]);
+      }])
+      .select();
+
+    console.log("ORDER DATA:", data);
+    console.log("ORDER ERROR:", error);
 
     if (!error) return;
-
-    console.error(error);
   }
 
   const list = getLocalStorage<Order[]>(

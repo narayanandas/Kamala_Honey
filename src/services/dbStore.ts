@@ -402,17 +402,15 @@ export const dbStore = {
     return orders.filter(o => o.userId === userId);
   },
 
-  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
-    if (!isPlaceholderConfig && db) {
-      const colPath = 'orders';
-      try {
-        const docRef = doc(db, colPath, orderId);
-        await updateDoc(docRef, { status });
-        return;
-      } catch (error) {
-        handleFirestoreError(error, OperationType.WRITE, `${colPath}/${orderId}`);
-      }
-    }
+  async updateOrderStatus(orderId: string, status: OrderStatus) {
+  if (isSupabaseConfigured && supabase) {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status })
+      .eq('order_id', orderId);
+
+    if (!error) return;
+  }
     // Fallback Local Mode
     const list = getLocalStorage<Order[]>(LOCAL_STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
     const index = list.findIndex(o => o.orderId === orderId);

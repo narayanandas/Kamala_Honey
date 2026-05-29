@@ -115,7 +115,7 @@ export const Hero: React.FC = () => {
                 <div>
                   <p className="text-yellow-400 text-xs font-bold uppercase tracking-widest">Featured Fresh Product</p>
                   <h3 className="text-lg font-black text-white font-heading">Theen Nelli (தேன் நெல்லி)</h3>
-                  <p className="text-white/80 text-xs">Rich whole gooseberries slow-preserved in original wildwoods nectar.</p>
+                  <p className="text-white/80 text-xs">When you submerge fresh gooseberries in pure honey, an natural process called osmosis happens.</p>
                 </div>
               </div>
             </motion.div>

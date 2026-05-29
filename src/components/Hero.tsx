@@ -114,7 +114,7 @@ export const Hero: React.FC = () => {
               <div className="absolute inset-0 bg-gradient-to-t from-honey-brown/80 via-transparent to-transparent flex items-end p-6">
                 <div>
                   <p className="text-yellow-400 text-xs font-bold uppercase tracking-widest">Featured Fresh Product</p>
-                  <h3 className="text-lg font-black text-white font-heading">Theen Nelli (தேன் நெல்லி)</h3>
+                  <h3 className="text-lg font-black text-white font-heading">Chinna Nelli (சின்ன நெல்லி)</h3>
                   <p className="text-white/80 text-xs">Rich whole gooseberries slow-preserved in original wildwoods nectar.</p>
                 </div>
               </div>

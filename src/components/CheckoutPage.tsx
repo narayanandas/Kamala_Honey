@@ -172,7 +172,7 @@ Hello Kamala Farm, I have just completed my order details on your app. Please ve
   }
 
   return (
-    <div className="py-10 px-4 mx-auto max-w-5xl sm:px-6 lg:px-8 space-y-6">
+    <div className="py-10 px-4 mx-auto max-w-5xl sm:px-6 lg:px-8 space-y-6"><div className="py-10 px-4 mx-auto max-w-5xl sm:px-6 lg:px-8 space-y-6 bg-orange-50 md:bg-transparent min-h-screen">
       
       <button
         onClick={() => setActiveTab(NavTab.CART)}

@@ -172,7 +172,7 @@ Hello Kamala Farm, I have just completed my order details on your app. Please ve
   }
 
   return (
-    <div className="py-10 px-4 mx-auto max-w-5xl sm:px-6 lg:px-8 space-y-6"><div className="py-10 px-4 mx-auto max-w-5xl sm:px-6 lg:px-8 space-y-6 bg-orange-50 md:bg-transparent min-h-screen">
+    <div className="py-10 px-4 mx-auto max-w-5xl sm:px-6 lg:px-8 space-y-6">
       
       <button
         onClick={() => setActiveTab(NavTab.CART)}
@@ -184,7 +184,7 @@ Hello Kamala Farm, I have just completed my order details on your app. Please ve
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* COLUMN LEFT: Shipping/Contact details */}
-        <div className="lg:col-span-7 bg-amber-50 md:bg-white dark:bg-charcoal p-6 sm:p-8 rounded-3xl ...">
+        <div className="lg:col-span-7 bg-white dark:bg-charcoal p-6 sm:p-8 rounded-3xl border border-honey-brown/5 dark:border-honey-gold/10 shadow-sm space-y-6">
           <div className="border-b border-honey-brown/5 pb-3">
             <span className="text-[10px] uppercase font-bold text-[#2E7D32] tracking-widest block mb-0.5">Direct Checkout System</span>
             <h3 className="font-heading font-bold text-2xl text-honey-brown dark:text-white">Shipping Details</h3>
@@ -280,7 +280,7 @@ Hello Kamala Farm, I have just completed my order details on your app. Please ve
         </div>
 
         {/* COLUMN RIGHT: Cart Items Summary Checklist */}
-        <div className="lg:col-span-5 bg-yellow-50 md:bg-white dark:bg-charcoal p-6 rounded-3xl ...">
+        <div className="lg:col-span-5 bg-white dark:bg-charcoal p-6 rounded-3xl border border-honey-brown/5 dark:border-honey-gold/10 shadow-sm space-y-4">
           <div className="border-b border-honey-brown/5 pb-3">
             <h3 className="font-heading font-bold text-lg text-honey-brown dark:text-white flex items-center gap-1.5">
               <ClipboardList size={18} className="text-honey-gold" /> Order Summary

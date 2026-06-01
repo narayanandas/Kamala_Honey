@@ -27,9 +27,24 @@ const setLocalStorage = <T>(key: string, value: T): void => {
   localStorage.setItem(key, JSON.stringify(value));
 };
 
-// Seed initial products if localStorage is empty
-if (!localStorage.getItem(LOCAL_STORAGE_KEYS.PRODUCTS)) {
+// Seed initial products if localStorage is empty, or update images if they contain old patterns
+const existingLocalProducts = localStorage.getItem(LOCAL_STORAGE_KEYS.PRODUCTS);
+if (!existingLocalProducts) {
   localStorage.setItem(LOCAL_STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
+} else {
+  try {
+    const parsed: Product[] = JSON.parse(existingLocalProducts);
+    // Sync cached products with newest images from INITIAL_PRODUCTS if there is an image mismatch
+    const needsImageSync = INITIAL_PRODUCTS.some(initProd => {
+      const existing = parsed.find(p => p.id === initProd.id);
+      return existing && existing.image !== initProd.image;
+    });
+    if (needsImageSync) {
+      localStorage.setItem(LOCAL_STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
+    }
+  } catch (e) {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
+  }
 }
 
 // Seed admin user and guest user in local storage profiles
@@ -206,14 +221,6 @@ export const dbStore = {
       }
     }
   },
-  async updateProductStock(id: string, stock: number) {
-  const { error } = await supabase
-    .from('products')
-    .update({ stock })
-    .eq('id', id);
-
-  return !error;
-},
 
   async updateProduct(product: Product): Promise<void> {
     // Save to local storage first for resilience
@@ -326,42 +333,20 @@ export const dbStore = {
 
   // ORDERS
   async createOrder(order: Order): Promise<void> {
-  console.log("CREATE ORDER CALLED", order);
-
-  if (isSupabaseConfigured && supabase) {
-
-    const { data, error } = await supabase
-      .from('orders')
-      .insert([{
-        order_id: order.orderId,
-        customer_name: order.customerName,
-        phone: order.phone,
-        address: order.address,
-        district: order.district,
-        state: order.state,
-        pincode: order.pincode,
-        total_amount: order.totalAmount,
-        status: order.status,
-        user_id: order.userId,
-        created_at: order.createdAt,
-        items: order.items
-      }])
-      .select();
-
-    console.log("ORDER DATA:", data);
-    console.log("ORDER ERROR:", error);
-
-    if (!error) return;
-  }
-
-  const list = getLocalStorage<Order[]>(
-    LOCAL_STORAGE_KEYS.ORDERS,
-    INITIAL_ORDERS
-  );
-
-  list.unshift(order);
-  setLocalStorage(LOCAL_STORAGE_KEYS.ORDERS, list);
-},
+    if (!isPlaceholderConfig && db) {
+      const colPath = 'orders';
+      try {
+        await setDoc(doc(db, colPath, order.orderId), order);
+        return;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, `${colPath}/${order.orderId}`);
+      }
+    }
+    // Fallback Local Mode
+    const list = getLocalStorage<Order[]>(LOCAL_STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
+    list.unshift(order);
+    setLocalStorage(LOCAL_STORAGE_KEYS.ORDERS, list);
+  },
 
   async getAllOrders(): Promise<Order[]> {
     if (!isPlaceholderConfig && db) {
@@ -402,15 +387,17 @@ export const dbStore = {
     return orders.filter(o => o.userId === userId);
   },
 
-  async updateOrderStatus(orderId: string, status: OrderStatus) {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase
-      .from('orders')
-      .update({ status })
-      .eq('order_id', orderId);
-
-    if (!error) return;
-  }
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
+    if (!isPlaceholderConfig && db) {
+      const colPath = 'orders';
+      try {
+        const docRef = doc(db, colPath, orderId);
+        await updateDoc(docRef, { status });
+        return;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, `${colPath}/${orderId}`);
+      }
+    }
     // Fallback Local Mode
     const list = getLocalStorage<Order[]>(LOCAL_STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
     const index = list.findIndex(o => o.orderId === orderId);

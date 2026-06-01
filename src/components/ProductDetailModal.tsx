@@ -165,7 +165,12 @@ export const ProductDetailModal: React.FC = () => {
                         : 'border-honey-brown/10 dark:border-honey-gold/10 hover:border-honey-gold/50'
                     }`}
                   >
-                    <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                    <img 
+                      src={imgUrl} 
+                      alt="" 
+                      className="w-full h-full object-cover" 
+                      referrerPolicy="no-referrer" 
+                    />
                   </button>
                 ))}
               </div>
@@ -197,7 +202,12 @@ export const ProductDetailModal: React.FC = () => {
                         onClick={() => setSelectedProductId(p.id)}
                         className="p-1.5 rounded-lg border border-honey-brown/5 dark:border-honey-gold/10 bg-white dark:bg-charcoal/60 hover:bg-honey-gold/5 cursor-pointer text-center space-y-1 transition duration-250"
                       >
-                        <img src={p.image} alt="" className="w-14 h-14 object-cover mx-auto rounded-md shadow-sm" />
+                        <img 
+                          src={p.image} 
+                          alt="" 
+                          className="w-14 h-14 object-cover mx-auto rounded-md shadow-sm" 
+                          referrerPolicy="no-referrer" 
+                        />
                         <h5 className="text-[10px] font-bold text-honey-brown dark:text-white truncate">{p.name}</h5>
                         <p className="text-[10px] font-mono text-honey-gold font-bold">₹{p.price}</p>
                       </div>

@@ -62,7 +62,12 @@ export const WishlistPage: React.FC = () => {
               >
                 <div className="space-y-3">
                   <div className="relative aspect-square overflow-hidden rounded-2xl border border-honey-brown/5 shadow-inner">
-                    <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                    <img 
+                      src={p.image} 
+                      alt={p.name} 
+                      className="w-full h-full object-cover" 
+                      referrerPolicy="no-referrer"
+                    />
                     <button
                       onClick={() => toggleWishlist(p.id)}
                       className="absolute top-2 right-2 p-1.5 bg-white text-red-500 rounded-full hover:bg-red-50"

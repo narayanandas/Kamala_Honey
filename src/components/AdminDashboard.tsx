@@ -67,12 +67,13 @@ export const AdminDashboard: React.FC = () => {
   const [prodPrice, setProdPrice] = useState(400);
   const [prodCategory, setProdCategory] = useState('Raw Wild Honey');
   const [prodDesc, setProdDesc] = useState('');
-  const [prodImage, setProdImage] = useState('https://images.unsplash.com/photo-1587049365226-ac434a2c07d5?auto=format&fit=crop&q=80&w=500');
+  const [prodImage, setProdImage] = useState('https://res.cloudinary.com/dlddzqqnw/image/upload/v1779902931/629709396_18142245394476616_8848105931985901562_n_kkgj74.jpg');
   const [prodInventory, setProdInventory] = useState(50);
   const [prodIngredients, setProdIngredients] = useState('');
 
-  // Preset Unsplash cover images for the honey-farm catalog
+  // Preset Unsplash and Cloudinary cover images for the honey-farm catalog
   const PRESET_COVERS = [
+    { name: 'Kamala Honey Farm Jar', url: 'https://res.cloudinary.com/dlddzqqnw/image/upload/v1779902931/629709396_18142245394476616_8848105931985901562_n_kkgj74.jpg' },
     { name: 'Raw Clover comb', url: 'https://images.unsplash.com/photo-1587049365226-ac434a2c07d5?auto=format&fit=crop&q=80&w=500' },
     { name: 'Warm Forest Wild', url: 'https://images.unsplash.com/photo-1596450514943-ac434a2c07d5?auto=format&fit=crop&q=80&w=500' },
     { name: 'Medicinal Ginger Infuse', url: 'https://images.unsplash.com/photo-1605335195007-aa97a7e37e96?auto=format&fit=crop&q=80&w=500' },
@@ -908,7 +909,12 @@ CREATE POLICY "Allow public delete" ON products FOR DELETE USING (true);`}
                             : 'border-honey-brown/5 hover:border-honey-gold/20'
                         }`}
                       >
-                        <img src={cover.url} alt="" className="w-full h-10 object-cover rounded mb-1" />
+                        <img 
+                          src={cover.url} 
+                          alt="" 
+                          className="w-full h-10 object-cover rounded mb-1" 
+                          referrerPolicy="no-referrer"
+                        />
                         <span className="line-clamp-1 truncate">{cover.name}</span>
                       </button>
                     ))}
@@ -1053,7 +1059,12 @@ CREATE POLICY "Allow public delete" ON products FOR DELETE USING (true);`}
             </div>
             
             <div className="w-full aspect-square max-h-[380px] overflow-hidden rounded bg-black relative flex items-center justify-center border border-honey-brown/10">
-              <img src={selectedProofUrl} alt="UPI Payment screenshot proof" className="max-w-full max-h-full object-contain" />
+              <img 
+                src={selectedProofUrl} 
+                alt="UPI Payment screenshot proof" 
+                className="max-w-full max-h-full object-contain" 
+                referrerPolicy="no-referrer"
+              />
             </div>
 
             <button

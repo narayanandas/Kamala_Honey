@@ -339,7 +339,12 @@ export const MyAccountPage: React.FC = () => {
                     className="p-2 border border-honey-brown/5 rounded-xl hover:bg-honey-gold/10 cursor-pointer space-y-1.5 transition text-center"
                     title="Click to view full details"
                   >
-                    <img src={p.image} alt="" className="w-16 h-16 object-cover rounded-lg mx-auto border border-honey-brown/5 shadow-sm" />
+                    <img 
+                      src={p.image} 
+                      alt="" 
+                      className="w-16 h-16 object-cover rounded-lg mx-auto border border-honey-brown/5 shadow-sm" 
+                      referrerPolicy="no-referrer"
+                    />
                     <h4 className="text-[11px] font-black text-honey-brown dark:text-white truncate">{p.name}</h4>
                     <p className="text-[10px] font-mono text-honey-gold font-bold">₹{p.price}</p>
                   </div>

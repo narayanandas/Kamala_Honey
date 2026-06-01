@@ -9,7 +9,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'Whole big wild gooseberries soaked in premium wild forest honey. Packed with Vitamin C and iron, it aids digestion and strengthens immunity.',
     category: 'Amla Honey',
     rating: 4.8,
-    image: 'https://images.unsplash.com/photo-1587049365226-ac434a2c07d5?auto=format&fit=crop&q=80&w=500',
+    image: 'https://res.cloudinary.com/dlddzqqnw/image/upload/v1779905674/Gemini_Generated_Image_arcgdxarcgdxarcg_xmvn7x.png',
     inventory: 50,
     ingredients: ['Whole Indian Gooseberry (Amla)', '100% Pure Natural Forest Honey']
   },

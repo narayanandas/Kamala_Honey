@@ -28,6 +28,7 @@ export interface UserProfile {
   state: string;
   pincode: string;
   role: 'customer' | 'admin';
+  password?: string;
 }
 
 export interface Product {

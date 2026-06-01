@@ -58,7 +58,8 @@ const localUsers: Record<string, UserProfile> = getLocalStorage(LOCAL_STORAGE_KE
     district: 'Thirunelveli',
     state: 'Tamil Nadu',
     pincode: '627001',
-    role: 'admin'
+    role: 'admin',
+    password: 'admin123'
   }
 });
 
@@ -329,6 +330,60 @@ export const dbStore = {
     const users = getLocalStorage<Record<string, UserProfile>>(LOCAL_STORAGE_KEYS.USERS, localUsers);
     users[profile.uid] = profile;
     setLocalStorage(LOCAL_STORAGE_KEYS.USERS, users);
+  },
+
+  async validateAdminLogin(phone: string, password: string): Promise<UserProfile | null> {
+    if (!isPlaceholderConfig && db) {
+      try {
+        const colPath = 'users';
+        const q = query(collection(db, colPath), where('role', '==', 'admin'), where('phone', '==', phone));
+        const querySnapshot = await getDocs(q);
+        let foundUser: UserProfile | null = null;
+        querySnapshot.forEach((docSnap) => {
+          const u = docSnap.data() as UserProfile;
+          if (u.password === password) {
+            foundUser = u;
+          }
+        });
+        if (foundUser) return foundUser;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.GET, `users_login`);
+      }
+    }
+    // Local storage fallback
+    const users = getLocalStorage<Record<string, UserProfile>>(LOCAL_STORAGE_KEYS.USERS, localUsers);
+    const admin = Object.values(users).find(
+      u => u.role === 'admin' && u.phone === phone && u.password === password
+    );
+    return admin || null;
+  },
+
+  async resetAdminPassword(phone: string, newPassword: string): Promise<boolean> {
+    let success = false;
+    if (!isPlaceholderConfig && db) {
+      try {
+        const colPath = 'users';
+        const q = query(collection(db, colPath), where('role', '==', 'admin'), where('phone', '==', phone));
+        const querySnapshot = await getDocs(q);
+        for (const docSnap of querySnapshot.docs) {
+          const ref = doc(db, colPath, docSnap.id);
+          await updateDoc(ref, { password: newPassword });
+          success = true;
+        }
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, `users_reset`);
+      }
+    }
+    
+    // Always sync with local storage as well
+    const users = getLocalStorage<Record<string, UserProfile>>(LOCAL_STORAGE_KEYS.USERS, localUsers);
+    const adminKey = Object.keys(users).find(k => users[k].role === 'admin' && users[k].phone === phone);
+    if (adminKey) {
+      users[adminKey].password = newPassword;
+      setLocalStorage(LOCAL_STORAGE_KEYS.USERS, users);
+      success = true;
+    }
+    return success;
   },
 
   // ORDERS

@@ -43,8 +43,8 @@ interface StoreContextType {
   // Auth User
   currentUser: UserProfile | null;
   setCurrentUser: (user: UserProfile | null) => void;
-  loginAsAdmin: () => void;
-  loginAsCustomer: () => void;
+  loginAdminWithPhoneAndPassword: (phone: string, password: string) => Promise<boolean>;
+  resetAdminPassword: (phone: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
 
@@ -102,7 +102,7 @@ const MOCK_ADMIN: UserProfile = {
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<NavTab>(NavTab.HOME);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   
   // Products listing
   const [products, setProducts] = useState<Product[]>([]);
@@ -132,7 +132,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [wishlist, setWishlist] = useState<string[]>([]);
 
   // Auth
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(MOCK_CUSTOMER);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
   // Orders
   const [orders, setOrders] = useState<Order[]>([]);
@@ -185,14 +185,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Auth controls
-  const loginAsAdmin = () => {
-    setCurrentUser(MOCK_ADMIN);
-    setActiveTab(NavTab.ADMIN);
+  const loginAdminWithPhoneAndPassword = async (phone: string, password: string): Promise<boolean> => {
+    const admin = await dbStore.validateAdminLogin(phone, password);
+    if (admin) {
+      setCurrentUser(admin);
+      setActiveTab(NavTab.ADMIN);
+      return true;
+    }
+    return false;
   };
 
-  const loginAsCustomer = () => {
-    setCurrentUser(MOCK_CUSTOMER);
-    setActiveTab(NavTab.HOME);
+  const handleResetAdminPassword = async (phone: string, queryNewPassword: string): Promise<boolean> => {
+    return await dbStore.resetAdminPassword(phone, queryNewPassword);
   };
 
   const logout = () => {
@@ -403,8 +407,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         currentUser,
         setCurrentUser,
-        loginAsAdmin,
-        loginAsCustomer,
+        loginAdminWithPhoneAndPassword,
+        resetAdminPassword: handleResetAdminPassword,
         logout,
         updateProfile,
 

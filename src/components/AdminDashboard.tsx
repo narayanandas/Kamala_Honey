@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../services/storeContext';
 import { dbStore } from '../services/dbStore';
-import { Order, OrderStatus, Product } from '../types';
+import { Order, OrderStatus, Product, NavTab } from '../types';
 import { isSupabaseConfigured } from '../services/supabaseClient';
 import {
   ShieldCheck,
@@ -44,7 +44,7 @@ export const AdminDashboard: React.FC = () => {
     products,
     setProducts,
     activeTab,
-    loginAsAdmin
+    setActiveTab
   } = useStore();
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -281,7 +281,7 @@ export const AdminDashboard: React.FC = () => {
           This secure system interface contains sensitive real-time transaction ledgers, active apiary warehouse audits, and stock controls restricted only for Kamala Farm Administrators.
         </p>
         <button
-          onClick={loginAsAdmin}
+          onClick={() => setActiveTab(NavTab.DASHBOARD)}
           className="px-6 py-2.5 bg-[#4E2F12] text-white font-semibold text-xs uppercase tracking-wider rounded-xl transition hover:bg-black"
         >
           Authenticate as Kamala Admin

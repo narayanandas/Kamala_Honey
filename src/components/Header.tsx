@@ -52,10 +52,10 @@ export const Header: React.FC = () => {
               />
             </div>
             <div>
-              <h1 className="text-honey-brown dark:text-honey-gold font-bold text-xl leading-none uppercase tracking-tight italic font-heading">
+              <h1 className="text-white dark:text-white font-bold text-xl leading-none uppercase tracking-tight italic font-heading">
                 Kamala
               </h1>
-              <p className="text-[10px] text-forest-green dark:text-emerald-405 font-bold tracking-[0.2em] uppercase font-sans">
+              <p className="text-[10px] text-white/80 dark:text-white/80 font-bold tracking-[0.2em] uppercase font-sans">
                 Natural Honey Farm
               </p>
             </div>
@@ -69,8 +69,8 @@ export const Header: React.FC = () => {
                 onClick={() => handleNavClick(item.tab)}
                 className={`text-sm font-semibold transition-all duration-200 py-1.5 border-b-2 ${
                   activeTab === item.tab
-                    ? 'text-honey-brown dark:text-honey-gold border-honey-gold'
-                    : 'text-gray-500 border-transparent hover:text-honey-gold hover:border-honey-gold/40 dark:text-honey-warm/75 dark:hover:text-honey-gold'
+                    ? 'text-white border-white'
+                    : 'text-white/60 border-transparent hover:text-white hover:border-white/40'
                 }`}
               >
                 {item.label}
@@ -81,77 +81,13 @@ export const Header: React.FC = () => {
           {/* Action Icons Panel */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            {/* Search Input Toggle */}
-            <div className="relative">
-              {showSearchBox ? (
-                <motion.div 
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: 180, opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex items-center"
-                >
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      if (activeTab !== NavTab.SHOP) setActiveTab(NavTab.SHOP);
-                    }}
-                    placeholder="Search natural honey..."
-                    className="w-full px-3 py-1.5 text-xs rounded-full border border-honey-gold bg-honey-warm/95 dark:bg-charcoal dark:text-honey-warm text-honey-brown focus:outline-none focus:ring-1 focus:ring-honey-brown"
-                    autoFocus
-                  />
-                  <button 
-                    onClick={() => {
-                      setSearchQuery('');
-                      setShowSearchBox(false);
-                    }}
-                    className="absolute right-2.5 p-0.5 text-honey-brown/60 dark:text-honey-warm/60 hover:text-honey-brown"
-                  >
-                    <X size={12} />
-                  </button>
-                </motion.div>
-              ) : (
-                <button
-                  onClick={() => setShowSearchBox(true)}
-                  className="p-2 text-honey-brown hover:text-honey-gold dark:text-honey-warm dark:hover:text-honey-gold transition-colors duration-200"
-                  title="Search products"
-                >
-                  <Search size={20} />
-                </button>
-              )}
-            </div>
-
-            {/* Dark & Light Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 text-honey-brown hover:text-honey-gold dark:text-honey-warm dark:hover:text-honey-gold transition-colors duration-200"
-              title="Toggle theme mode"
-            >
-              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
-
-            {/* Wishlist Button */}
-            <button
-              onClick={() => handleNavClick(NavTab.WISHLIST)}
-              className="relative p-2 text-honey-brown hover:text-honey-gold dark:text-honey-warm dark:hover:text-honey-gold transition-colors duration-200"
-              title="Saved items"
-            >
-              <Heart size={20} className={activeTab === NavTab.WISHLIST ? 'fill-red-500 text-red-500' : ''} />
-              {wishlist.length > 0 && (
-                <span className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm">
-                  {wishlist.length}
-                </span>
-              )}
-            </button>
-
             {/* Cart Button */}
             <button
               onClick={() => handleNavClick(NavTab.CART)}
-              className="relative p-2 text-honey-brown hover:text-honey-gold dark:text-honey-warm dark:hover:text-honey-gold transition-colors duration-200"
+              className="relative p-2 text-white hover:text-white/80 transition-colors duration-200"
               title="Shopping list"
             >
-              <ShoppingBag size={20} className={activeTab === NavTab.CART ? 'text-honey-gold' : ''} />
+              <ShoppingBag size={20} className={activeTab === NavTab.CART ? 'opacity-100' : 'opacity-80'} />
               {cartCount > 0 && (
                 <span className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-forest-green text-[10px] font-bold text-white shadow-sm">
                   {cartCount}
@@ -159,27 +95,27 @@ export const Header: React.FC = () => {
               )}
             </button>
 
-            {/* My Account Profile Dropdown */}
+            {/* Admin Profile Account Setup */}
             <div className="relative">
               <button
-                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className={`flex items-center gap-1 p-1.5 rounded-full border transition-all duration-200 ${
-                  currentUser 
-                    ? currentUser.role === 'admin'
-                      ? 'border-forest-green bg-forest-green/5 text-forest-green'
-                      : 'border-honey-gold bg-honey-gold/5 text-honey-gold'
-                    : 'border-honey-brown/15 text-honey-brown/75 dark:border-honey-gold/15 dark:text-honey-warm/75'
-                }`}
-                title="Account Settings"
+                onClick={() => {
+                  if (currentUser) {
+                    setProfileDropdownOpen(!profileDropdownOpen);
+                  } else {
+                    handleNavClick(NavTab.DASHBOARD);
+                  }
+                }}
+                className={`flex items-center gap-1 p-1.5 rounded-full border transition-all duration-200 border-white/20 hover:border-white/40 text-white bg-white/5 hover:bg-white/10`}
+                title={currentUser ? "Admin Session Tools" : "Admin Login Panel"}
               >
                 <User size={18} />
                 <span className="hidden lg:block text-xs font-semibold px-1">
-                  {currentUser ? (currentUser.role === 'admin' ? 'Admin' : 'My Account') : 'Sign In'}
+                  {currentUser ? 'Admin Active' : 'Admin Login'}
                 </span>
               </button>
 
               <AnimatePresence>
-                {profileDropdownOpen && (
+                {profileDropdownOpen && currentUser && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setProfileDropdownOpen(false)} />
                     <motion.div
@@ -188,106 +124,38 @@ export const Header: React.FC = () => {
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       className="absolute right-0 mt-2 w-72 origin-top-right rounded-xl bg-white dark:bg-charcoal border border-honey-brown/15 dark:border-honey-gold/15 p-4 shadow-xl z-20"
                     >
-                      {currentUser ? (
-                        <div>
-                          <div className="border-b border-honey-brown/10 pb-3 mb-3">
-                            <p className="text-xs text-honey-brown/60 dark:text-honey-warm/60">Logged in as</p>
-                            <h4 className="text-sm font-bold text-honey-brown dark:text-honey-gold">{currentUser.name}</h4>
-                            <p className="text-[11px] text-honey-brown/80 dark:text-honey-warm/70 truncate">{currentUser.email}</p>
-                            <span className={`inline-block text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full mt-1.5 ${
-                              currentUser.role === 'admin'
-                                ? 'bg-forest-green text-white'
-                                : 'bg-honey-gold text-honey-brown'
-                            }`}>
-                              Role: {currentUser.role}
-                            </span>
-                          </div>
-
-                          <div className="space-y-1">
-                            {currentUser.role === 'customer' && (
-                              <button
-                                onClick={() => {
-                                  handleNavClick(NavTab.DASHBOARD);
-                                  setProfileDropdownOpen(false);
-                                }}
-                                className="w-full text-left px-2.5 py-1.5 rounded text-xs font-medium text-honey-brown dark:text-honey-warm hover:bg-honey-gold/10 transition-colors"
-                              >
-                                📋 My Order History
-                              </button>
-                            )}
-                            
-                            {currentUser.role === 'admin' ? (
-                              <button
-                                onClick={() => {
-                                  handleNavClick(NavTab.ADMIN);
-                                  setProfileDropdownOpen(false);
-                                }}
-                                className="w-full text-left px-2.5 py-1.5 rounded text-xs font-semibold text-forest-green bg-forest-green/5 hover:bg-forest-green/10 transition-colors"
-                              >
-                                🛠️ Admin Control Panel
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  loginAsAdmin();
-                                  setProfileDropdownOpen(false);
-                                }}
-                                className="w-full text-left px-2.5 py-1.5 rounded text-[11px] text-honey-brown/70 dark:text-honey-warm/70 hover:bg-honey-gold/10 hover:text-honey-brown transition-colors"
-                              >
-                                ⚙️ Switch to Admin View
-                              </button>
-                            )}
-
-                            {currentUser.role === 'admin' && (
-                              <button
-                                onClick={() => {
-                                  loginAsCustomer();
-                                  setProfileDropdownOpen(false);
-                                }}
-                                className="w-full text-left px-2.5 py-1.5 rounded text-xs text-honey-brown hover:bg-honey-gold/10 transition-colors"
-                              >
-                                🧑 Go Back to Customer View
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() => {
-                                logout();
-                                setProfileDropdownOpen(false);
-                              }}
-                              className="w-full text-left flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium text-red-500 hover:bg-red-500/5 transition-colors border-t border-honey-brown/5 mt-2"
-                            >
-                              <LogOut size={12} /> Sign Out Profile
-                            </button>
-                          </div>
+                      <div>
+                        <div className="border-b border-honey-brown/10 pb-3 mb-3">
+                          <p className="text-xs text-honey-brown/60 dark:text-honey-warm/60">Logged in as Administrator</p>
+                          <h4 className="text-sm font-bold text-honey-brown dark:text-honey-gold">{currentUser.name}</h4>
+                          <p className="text-[11px] text-honey-brown/80 dark:text-honey-warm/70 truncate">{currentUser.email}</p>
+                          <span className="inline-block text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full mt-1.5 bg-forest-green text-white">
+                            Session Status: Authorized
+                          </span>
                         </div>
-                      ) : (
-                        <div className="space-y-3 py-1">
-                          <p className="text-xs text-honey-brown/70 dark:text-honey-warm/70">
-                            Connect your profile to track home deliveries from Thirunelveli.
-                          </p>
-                          <div className="flex flex-col gap-2">
-                            <button
-                              onClick={() => {
-                                loginAsCustomer();
-                                setProfileDropdownOpen(false);
-                              }}
-                              className="w-full py-2 rounded-lg bg-honey-gold text-honey-brown hover:bg-honey-gold/90 text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1"
-                            >
-                              Connect Demo Customer
-                            </button>
-                            <button
-                              onClick={() => {
-                                loginAsAdmin();
-                                setProfileDropdownOpen(false);
-                              }}
-                              className="w-full py-2 rounded-lg bg-forest-green text-white hover:bg-forest-green-dark text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1"
-                            >
-                              <Sparkles size={12} /> Access Admin View
-                            </button>
-                          </div>
+
+                        <div className="space-y-1">
+                          <button
+                            onClick={() => {
+                              handleNavClick(NavTab.ADMIN);
+                              setProfileDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-2.5 py-1.5 rounded text-xs font-semibold text-forest-green bg-forest-green/5 hover:bg-forest-green/10 transition-colors"
+                          >
+                            🛠️ Admin Control Panel
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              logout();
+                              setProfileDropdownOpen(false);
+                            }}
+                            className="w-full text-left flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium text-red-500 hover:bg-red-500/5 transition-colors border-t border-honey-brown/5 mt-2"
+                          >
+                            <LogOut size={12} /> Sign Out Session
+                          </button>
                         </div>
-                      )}
+                      </div>
                     </motion.div>
                   </>
                 )}
@@ -297,7 +165,7 @@ export const Header: React.FC = () => {
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 md:hidden text-honey-brown dark:text-honey-warm hover:text-honey-gold transition-colors duration-200"
+              className="p-2 md:hidden text-white hover:text-white/80 transition-colors duration-200"
               title="Navigation Menu"
             >
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -331,46 +199,29 @@ export const Header: React.FC = () => {
               </button>
             ))}
             
-            {currentUser && currentUser.role === 'customer' && (
+            {currentUser ? (
+              <>
+                <button
+                  onClick={() => handleNavClick(NavTab.ADMIN)}
+                  className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-bold text-forest-green bg-forest-green/5 border border-forest-green/20 mb-2`}
+                >
+                  🛠️ Admin Control Dashboard
+                </button>
+                <button
+                  onClick={() => { logout(); setMobileMenuOpen(false); }}
+                  className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-bold text-red-500 bg-red-500/5"
+                >
+                  🚪 Sign Out Admin Session
+                </button>
+              </>
+            ) : (
               <button
                 onClick={() => handleNavClick(NavTab.DASHBOARD)}
-                className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                  activeTab === NavTab.DASHBOARD
-                    ? 'bg-honey-gold text-honey-brown shadow-sm'
-                    : 'text-honey-brown hover:bg-honey-gold/10 dark:text-honey-warm'
-                }`}
+                className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-bold bg-honey-gold text-honey-brown"
               >
-                📋 My Orders History
+                🔑 Admin Dashboard Login
               </button>
             )}
-
-            {currentUser && currentUser.role === 'admin' && (
-              <button
-                onClick={() => handleNavClick(NavTab.ADMIN)}
-                className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-bold text-forest-green bg-forest-green/5 border border-forest-green/20`}
-              >
-                🛠️ Admin Control Dashboard
-              </button>
-            )}
-
-            {/* Quick swap button inside mobile menu */}
-            <div className="pt-2 border-t border-honey-brown/10 mt-3 flex justify-between items-center text-xs">
-              <span className="text-honey-brown/50 dark:text-honey-warm/50 font-semibold">Switch Roles:</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { loginAsCustomer(); setMobileMenuOpen(false); }}
-                  className="px-2 py-1 bg-honey-gold/20 text-honey-brown rounded text-[10px] font-bold"
-                >
-                  Customer User
-                </button>
-                <button
-                  onClick={() => { loginAsAdmin(); setMobileMenuOpen(false); }}
-                  className="px-2 py-1 bg-forest-green/20 text-forest-green rounded text-[10px] font-bold"
-                >
-                  Admin Portal
-                </button>
-              </div>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>

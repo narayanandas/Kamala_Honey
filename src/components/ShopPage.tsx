@@ -9,8 +9,6 @@ export const ShopPage: React.FC = () => {
     products,
     isLoadingProducts,
     addToCart,
-    wishlist,
-    toggleWishlist,
     setSelectedProductId,
     setActiveTab,
     searchQuery,
@@ -156,20 +154,6 @@ export const ShopPage: React.FC = () => {
 
           <div className="space-y-6">
             
-            {/* Search filter for mobile view inside drawer */}
-            <div className="lg:hidden">
-              <label className="block text-xs font-bold text-honey-brown dark:text-honey-gold uppercase tracking-wider mb-2">Search Catalog</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Type product name..."
-                  className="w-full px-3 py-2 bg-white dark:bg-charcoal/80 text-xs border border-honey-gold rounded"
-                />
-              </div>
-            </div>
-
             {/* Custom Category Selection list */}
             <div>
               <h4 className="text-xs font-black uppercase tracking-widest text-honey-brown dark:text-honey-gold mb-3">
@@ -282,7 +266,6 @@ export const ShopPage: React.FC = () => {
             }>
               <AnimatePresence mode="popLayout">
                 {paginatedProducts.map((product) => {
-                  const isSaved = wishlist.includes(product.id);
                   return (
                     <motion.div
                       key={product.id}
@@ -301,18 +284,6 @@ export const ShopPage: React.FC = () => {
                           <CheckCircle size={10} /> Best Seller
                         </span>
                       )}
-
-                      {/* Wishlist floating toggle indicator */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleWishlist(product.id);
-                        }}
-                        className="absolute top-3 right-3 z-10 p-2 rounded-full border border-honey-brown/5 bg-white/90 shadow-md hover:scale-110 active:scale-95 transition-all text-honey-brown"
-                        title={isSaved ? "Remove from wishlist" : "Add to wishlist"}
-                      >
-                        <Heart size={16} className={isSaved ? 'fill-red-500 text-red-500' : 'text-honey-brown'} />
-                      </button>
 
                       {/* Cover Photo */}
                       <div 

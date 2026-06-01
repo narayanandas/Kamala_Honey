@@ -11,8 +11,6 @@ export const ProductDetailModal: React.FC = () => {
     selectedProductId,
     setSelectedProductId,
     addToCart,
-    wishlist,
-    toggleWishlist,
     setActiveTab
   } = useStore();
 
@@ -21,7 +19,6 @@ export const ProductDetailModal: React.FC = () => {
   const [isZoomed, setIsZoomed] = useState(false);
   const [qty, setQty] = useState(1);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [isSaved, setIsSaved] = useState(false);
 
   // Review Form state
   const [reviewerName, setReviewerName] = useState('');
@@ -38,7 +35,6 @@ export const ProductDetailModal: React.FC = () => {
   useEffect(() => {
     if (product) {
       dbStore.getReviewsForProduct(product.id).then(setReviews);
-      setIsSaved(wishlist.includes(product.id));
       setQty(1);
       setActiveImageIdx(0);
       setReviewSuccess(false);
@@ -46,7 +42,7 @@ export const ProductDetailModal: React.FC = () => {
       setComment('');
       setUserRating(5);
     }
-  }, [product, wishlist]);
+  }, [product]);
 
   // Gallery images construct (different mock angles of honey jars)
   const images = useMemo(() => {
@@ -228,12 +224,6 @@ export const ProductDetailModal: React.FC = () => {
                   <h2 className="text-2xl font-black text-honey-brown dark:text-white font-heading leading-tight">
                     {product.name}
                   </h2>
-                  <button
-                    onClick={() => toggleWishlist(product.id)}
-                    className="p-2 border rounded-full border-honey-brown/10 text-honey-brown shadow-sm"
-                  >
-                    <Heart size={16} className={isSaved ? 'fill-red-500 text-red-500' : ''} />
-                  </button>
                 </div>
                 
                 <p className="text-sm font-semibold italic text-honey-brown/70 dark:text-honey-warm/70">

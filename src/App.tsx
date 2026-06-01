@@ -9,7 +9,6 @@ import { CartPage } from './components/CartPage';
 import { CheckoutPage } from './components/CheckoutPage';
 import { AboutPage } from './components/AboutPage';
 import { ContactPage } from './components/ContactPage';
-import { WishlistPage } from './components/WishlistPage';
 import { MyAccountPage } from './components/MyAccountPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ProductDetailModal } from './components/ProductDetailModal';
@@ -145,8 +144,6 @@ const AppContent: React.FC = () => {
         return <AboutPage />;
       case NavTab.CONTACT:
         return <ContactPage />;
-      case NavTab.WISHLIST:
-        return <WishlistPage />;
       case NavTab.CART:
         return <CartPage />;
       case NavTab.CHECKOUT:

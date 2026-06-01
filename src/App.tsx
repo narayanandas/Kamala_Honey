@@ -2,6 +2,7 @@ import React from 'react';
 import { StoreProvider, useStore } from './services/storeContext';
 import { NavTab, Product } from './types';
 import { Header } from './components/Header';
+import { FlyingBees } from './components/FlyingBees';
 import { Hero } from './components/Hero';
 import { Features } from './components/Features';
 import { ShopPage } from './components/ShopPage';
@@ -237,6 +238,9 @@ const AppContent: React.FC = () => {
 
       {/* Dynamic Detailing Modal Trigger */}
       <ProductDetailModal />
+
+      {/* Global Honey Bee Click Flight effect */}
+      <FlyingBees />
 
     </div>
   );

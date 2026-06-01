@@ -43,6 +43,38 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Custom Honey Bee Cursors */
+:root {
+  --cursor-default: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpolygon points='25,21 30,30 21,25' fill='%234E2F12' /%3E%3Cellipse cx='14' cy='14' rx='11' ry='7' fill='%23FBBF24' stroke='%234E2F12' stroke-width='1.5' transform='rotate(45, 14, 14)' /%3E%3Cpath d='M9,13 L13,9' stroke='%234E2F12' stroke-width='2.5' stroke-linecap='round' /%3E%3Cpath d='M13,17 L17,13' stroke='%234E2F12' stroke-width='2.5' stroke-linecap='round' /%3E%3Cpath d='M17,21 L21,17' stroke='%234E2F12' stroke-width='2.5' stroke-linecap='round' /%3E%3Cellipse cx='11' cy='9' rx='3' ry='5.5' fill='%23E0F2FE' fill-opacity='0.8' stroke='%2338BDF8' stroke-width='1' transform='rotate(-15, 11, 9)' /%3E%3Cellipse cx='17' cy='8' rx='2.5' ry='4.5' fill='%23E0F2FE' fill-opacity='0.75' stroke='%2338BDF8' stroke-width='1' transform='rotate(20, 17, 8)' /%3E%3Ccircle cx='7' cy='11' r='1.2' fill='%234E2F12' /%3E%3Cpath d='M6,13 Q7,14 8,13' stroke='%234E2F12' stroke-width='1' fill='none' /%3E%3Cpath d='M5,8 Q3,5 4,3' stroke='%234E2F12' stroke-width='1' fill='none' stroke-linecap='round' /%3E%3Cpath d='M8,6 Q8,3 10,2' stroke='%234E2F12' stroke-width='1' fill='none' stroke-linecap='round' /%3E%3C/svg%3E") 4 4, auto;
+
+  --cursor-pointer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpolygon points='25,21 30,30 21,25' fill='%234E2F12' /%3E%3Ccircle cx='28' cy='15' r='1.5' fill='%23D4A017' /%3E%3Ccircle cx='20' cy='28' r='1' fill='%23D4A017' /%3E%3Cellipse cx='14' cy='14' rx='11' ry='7' fill='%23FBBF24' stroke='%234E2F12' stroke-width='1.5' transform='rotate(45, 14, 14)' /%3E%3Cpath d='M9,13 L13,9' stroke='%234E2F12' stroke-width='2.5' stroke-linecap='round' /%3E%3Cpath d='M13,17 L17,13' stroke='%234E2F12' stroke-width='2.5' stroke-linecap='round' /%3E%3Cpath d='M17,21 L21,17' stroke='%234E2F12' stroke-width='2.5' stroke-linecap='round' /%3E%3Cellipse cx='9' cy='7' rx='4.5' ry='8.5' fill='%23FDE047' fill-opacity='0.9' stroke='%23D4A017' stroke-width='1.2' transform='rotate(-25, 9, 7)' /%3E%3Cellipse cx='19' cy='6' rx='3.8' ry='7' fill='%23FDE047' fill-opacity='0.85' stroke='%23D4A017' stroke-width='1.2' transform='rotate(30, 19, 6)' /%3E%3Ccircle cx='7' cy='11' r='1.2' fill='%234E2F12' /%3E%3Cpath d='M6,13 Q7,14 8,13' stroke='%234E2F12' stroke-width='1' fill='none' /%3E%3Cpath d='M5,8 Q3,5 4,3' stroke='%234E2F12' stroke-width='1' fill='none' stroke-linecap='round' /%3E%3Cpath d='M8,6 Q8,3 10,2' stroke='%234E2F12' stroke-width='1' fill='none' stroke-linecap='round' /%3E%3C/svg%3E") 4 4, pointer;
+}
+
+html, body, #root {
+  cursor: var(--cursor-default);
+}
+
+/* Clickable elements hover state */
+a, button, select, 
+input[type="button"], 
+input[type="submit"], 
+input[type="text"], 
+input[type="tel"], 
+input[type="password"], 
+[role="button"], 
+.cursor-pointer,
+.pointer-events-auto {
+  cursor: var(--cursor-pointer) !important;
+}
+
+/* Let custom input fields allow correct text cursor if they are typing, but default to pointer/default correctly */
+input[type="text"]:focus, 
+input[type="tel"]:focus, 
+input[type="password"]:focus,
+textarea:focus {
+  cursor: text !important;
+}
+
 /* Simple customized scrollbar for a premium look */
 ::-webkit-scrollbar {
   width: 8px;

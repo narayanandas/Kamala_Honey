@@ -17,8 +17,8 @@ export const FlyingBees: React.FC = () => {
   const lastTouchTime = useRef<number>(0);
 
   const spawnFlock = useCallback((clientX?: number, clientY?: number) => {
-    // Generate a massive swarm of 25 to 40 bees per interaction!
-    const beeCount = 25 + Math.floor(Math.random() * 16); 
+    // Generate a moderate swarm of 12 to 19 bees per interaction
+    const beeCount = 12 + Math.floor(Math.random() * 8); 
     const newBees: Bee[] = [];
 
     for (let i = 0; i < beeCount; i++) {

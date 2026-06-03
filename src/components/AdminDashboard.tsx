@@ -977,7 +977,7 @@ CREATE POLICY "Allow public delete" ON products FOR DELETE USING (true);`}
                     <th>Customer Location Details</th>
                     <th>Ordered Items Stack</th>
                     <th>Invoice Cost</th>
-                    <th>UPI Screenshot</th>
+                    <th>Payment Details</th>
                     <th>Logistics Control</th>
                   </tr>
                 </thead>
@@ -1009,16 +1009,30 @@ CREATE POLICY "Allow public delete" ON products FOR DELETE USING (true);`}
                       <td className="font-mono font-bold text-honey-brown dark:text-white">
                         ₹{ord.totalAmount}
                       </td>
-                      <td className="pr-2">
-                        {ord.upiScreenshot ? (
-                          <button
-                            onClick={() => setSelectedProofUrl(ord.upiScreenshot || '')}
-                            className="px-2.5 py-1.5 bg-[#FFF8E7] text-honey-brown text-[10px] hover:bg-honey-brown hover:text-white font-bold rounded-lg border border-honey-brown/10 uppercase transition flex items-center gap-1 shrink-0"
-                          >
-                            <Eye size={12} /> View Proof
-                          </button>
+                      <td className="pr-2 py-2">
+                        {ord.paymentMethod === 'Razorpay' ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex px-2 py-0.5 bg-green-100 text-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300 font-extrabold text-[9px] uppercase tracking-wider rounded border border-green-300">
+                              Razorpay PAID ✓
+                            </span>
+                            <p className="text-[9px] font-mono font-bold text-gray-500 dark:text-honey-warm/60 max-w-[124px] truncate" title={ord.paymentId}>
+                              ID: {ord.paymentId}
+                            </p>
+                          </div>
+                        ) : ord.upiScreenshot ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-950/20 dark:text-amber-300 font-extrabold text-[9px] uppercase tracking-wider rounded border border-amber-300 mb-0.5">
+                              WhatsApp Direct
+                            </span>
+                            <button
+                              onClick={() => setSelectedProofUrl(ord.upiScreenshot || '')}
+                              className="px-1.5 py-0.5 bg-[#FFF8E7] text-honey-brown text-[9px] hover:bg-honey-brown hover:text-white font-bold rounded border border-honey-brown/15 uppercase transition flex items-center gap-1 shrink-0"
+                            >
+                              <Eye size={10} /> View Proof
+                            </button>
+                          </div>
                         ) : (
-                          <span className="text-red-500 text-[10px] font-bold bg-red-100 px-2 py-0.5 rounded-full">No Proof</span>
+                          <span className="text-red-500 text-[9px] font-bold bg-red-100 dark:bg-red-950/30 px-2 py-0.5 rounded-full">Unpaid / No Proof</span>
                         )}
                       </td>
                       <td>

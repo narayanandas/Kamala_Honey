@@ -65,6 +65,7 @@ export const ProductDetailModal: React.FC = () => {
 
   const handleAddToCartClick = () => {
     addToCart(product, qty);
+    setSelectedProductId(null);
   };
 
   const handleBuyNowClick = () => {

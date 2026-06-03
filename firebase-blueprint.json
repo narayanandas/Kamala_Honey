@@ -51,7 +51,10 @@
         "status": { "type": "string", "enum": ["Pending", "Processing", "Shipped", "Delivered"], "description": "Order progression status" },
         "upiScreenshot": { "type": "string", "description": "UPI payment screenshot base64 proof text or URL" },
         "userId": { "type": "string", "description": "Auth identifier of purchasing user" },
-        "createdAt": { "type": "string", "description": "Timestamp when order was placed" }
+        "createdAt": { "type": "string", "description": "Timestamp when order was placed" },
+        "paymentMethod": { "type": "string", "description": "Razorpay or WhatsApp Manual" },
+        "paymentStatus": { "type": "string", "enum": ["Unpaid", "Paid", "Refunded"], "description": "Order payment lifecycle status" },
+        "paymentId": { "type": "string", "description": "Razorpay payment unique ID" }
       },
       "required": ["orderId", "customerName", "phone", "address", "totalAmount", "status", "createdAt"]
     },

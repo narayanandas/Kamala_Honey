@@ -68,6 +68,9 @@ export interface Order {
   upiScreenshot?: string; // Base64 or local URL proof
   userId: string;
   createdAt: string;
+  paymentMethod?: string;
+  paymentStatus?: 'Unpaid' | 'Paid' | 'Refunded';
+  paymentId?: string;
 }
 
 export interface Review {

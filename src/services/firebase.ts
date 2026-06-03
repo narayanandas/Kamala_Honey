@@ -1,10 +1,10 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, writeBatch } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
+import firebaseConfig from '../../firebase-applet-config.json';
 
 // Detect if we are using the local placeholder config or real Firebase config
-const isPlaceholderConfig = true;
+const isPlaceholderConfig = false;
 
 let app;
 let db: any = null;
@@ -13,7 +13,7 @@ let auth: any = null;
 if (!isPlaceholderConfig) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    db = getFirestore(app);
+    db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
     auth = getAuth(app);
     
     // Validate connection to Firestore as requested by skill

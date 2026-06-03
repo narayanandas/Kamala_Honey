@@ -325,6 +325,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     state: string;
     pincode: string;
     paymentProof?: string;
+    paymentMethod?: string;
+    paymentStatus?: 'Unpaid' | 'Paid' | 'Refunded';
+    paymentId?: string;
   }) => {
     const randomNum = Math.floor(100 + Math.random() * 900);
     const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
@@ -343,7 +346,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       status: OrderStatus.PENDING,
       upiScreenshot: customerDetails.paymentProof || '',
       userId: currentUser?.uid || 'guest',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      paymentMethod: customerDetails.paymentMethod || 'Manual',
+      paymentStatus: customerDetails.paymentStatus || 'Unpaid',
+      paymentId: customerDetails.paymentId || ''
     };
 
     await dbStore.createOrder(newOrder);

@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net catch-all block
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reuseable global safety primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // USERS COLLECTION
+    // users/{userId}
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId) && 
+        request.resource.data.keys().hasAll(['uid', 'email']) &&
+        request.resource.data.uid == userId;
+      allow delete: if false;
+    }
+
+    // PRODUCTS COLLECTION
+    // products/{productId}
+    match /products/{productId} {
+      allow read: if true; // Public catalog
+      // Only authorized administrators or users should be checked (or for demo allow writes if signed in/admin)
+      allow write: if isSignedIn();
+    }
+
+    // ORDERS COLLECTION
+    // orders/{orderId}
+    match /orders/{orderId} {
+      allow read: if isSignedIn(); // Customers reading their orders, admin reading all orders
+      allow create: if isSignedIn() && 
+        request.resource.data.keys().hasAll(['orderId', 'customerName', 'phone', 'address', 'totalAmount', 'status', 'createdAt']) &&
+        request.resource.data.orderId == orderId;
+      allow update: if isSignedIn(); // Allow updating order status/payment details
+      allow delete: if false; // Orders are immutable once archived
+    }
+
+    // REVIEWS COLLECTION
+    // reviews/{reviewId}
+    match /reviews/{reviewId} {
+      allow read: if true; // Public catalog reviews
+      allow create: if isSignedIn() &&
+        request.resource.data.keys().hasAll(['id', 'productId', 'reviewerName', 'rating', 'comment']);
+      allow update, delete: if isSignedIn();
+    }
+
+    // WISHLISTS COLLECTION
+    // wishlists/{userId}
+    match /wishlists/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) &&
+        request.resource.data.keys().hasAll(['userId', 'productIds']) &&
+        request.resource.data.userId == userId;
+      allow delete: if isOwner(userId);
+    }
+  }
+}

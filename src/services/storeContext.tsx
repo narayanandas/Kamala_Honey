@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { NavTab, Product, Order, UserProfile, OrderItem, OrderStatus, Review } from '../types';
 import { dbStore } from './dbStore';
 import { auth, isPlaceholderConfig } from './firebase';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 interface StoreContextType {
   activeTab: NavTab;
@@ -13,6 +14,7 @@ interface StoreContextType {
   
   // Products
   products: Product[];
+  setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
   isLoadingProducts: boolean;
   refreshProducts: () => void;
   addProduct: (product: Product) => Promise<void>;
@@ -43,8 +45,13 @@ interface StoreContextType {
   // Auth User
   currentUser: UserProfile | null;
   setCurrentUser: (user: UserProfile | null) => void;
+  loginWithEmailAndPassword: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  signUpWithEmailAndPassword: (email: string, password: string, name: string, phone: string, role?: 'customer' | 'admin') => Promise<{ success: boolean; message?: string }>;
   loginAdminWithPhoneAndPassword: (phone: string, password: string) => Promise<boolean>;
   resetAdminPassword: (phone: string, password: string) => Promise<boolean>;
+  resetPasswordForEmail: (email: string) => Promise<{ success: boolean; message: string }>;
+  loginAsAdmin: () => void;
+  loginAsCustomer: () => void;
   logout: () => void;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
 
@@ -157,6 +164,30 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     refreshProducts();
     refreshOrders();
+
+    // Supabase Auth State Synchronization
+    if (isSupabaseConfigured && supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          dbStore.syncSupabaseUser(session.user).then(userProfile => {
+            setCurrentUser(userProfile);
+          });
+        }
+      }).catch(err => console.warn('Supabase initial session check:', err));
+
+      const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          const profile = await dbStore.syncSupabaseUser(session.user);
+          setCurrentUser(profile);
+        } else if (event === 'SIGNED_OUT') {
+          setCurrentUser(null);
+        }
+      });
+
+      return () => {
+        authListener?.subscription?.unsubscribe();
+      };
+    }
   }, []);
 
   // Set default wishlist
@@ -185,6 +216,40 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Auth controls
+  const loginWithEmailAndPassword = async (email: string, pass: string): Promise<{ success: boolean; message?: string }> => {
+    const res = await dbStore.signInWithSupabase(email, pass);
+    if (res.success && res.user) {
+      setCurrentUser(res.user);
+      if (res.user.role === 'admin') {
+        setActiveTab(NavTab.ADMIN);
+      }
+      return { success: true };
+    }
+    return { success: false, message: res.message || 'Invalid email or password' };
+  };
+
+  const signUpWithEmailAndPassword = async (
+    email: string,
+    pass: string,
+    name: string,
+    phone: string,
+    role: 'customer' | 'admin' = 'customer'
+  ): Promise<{ success: boolean; message?: string }> => {
+    const res = await dbStore.signUpWithSupabase(email, pass, { name, phone, role });
+    if (res.success && res.user) {
+      setCurrentUser(res.user);
+      if (role === 'admin') {
+        setActiveTab(NavTab.ADMIN);
+      }
+      return { success: true };
+    }
+    return { success: res.success, message: res.message };
+  };
+
+  const resetPasswordForEmail = async (email: string): Promise<{ success: boolean; message: string }> => {
+    return await dbStore.resetSupabasePassword(email);
+  };
+
   const loginAdminWithPhoneAndPassword = async (phone: string, password: string): Promise<boolean> => {
     const admin = await dbStore.validateAdminLogin(phone, password);
     if (admin) {
@@ -199,7 +264,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return await dbStore.resetAdminPassword(phone, queryNewPassword);
   };
 
-  const logout = () => {
+  const loginAsAdmin = () => {
+    setCurrentUser(MOCK_ADMIN);
+    setActiveTab(NavTab.ADMIN);
+  };
+
+  const loginAsCustomer = () => {
+    setCurrentUser(MOCK_CUSTOMER);
+  };
+
+  const logout = async () => {
+    await dbStore.signOutSupabase();
     setCurrentUser(null);
     setActiveTab(NavTab.HOME);
   };
@@ -386,6 +461,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         theme,
         toggleTheme,
         products,
+        setProducts,
         isLoadingProducts,
         refreshProducts,
         addProduct: handleAddProduct,
@@ -413,8 +489,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         currentUser,
         setCurrentUser,
+        loginWithEmailAndPassword,
+        signUpWithEmailAndPassword,
         loginAdminWithPhoneAndPassword,
         resetAdminPassword: handleResetAdminPassword,
+        resetPasswordForEmail,
+        loginAsAdmin,
+        loginAsCustomer,
         logout,
         updateProfile,
 

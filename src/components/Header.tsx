@@ -95,7 +95,7 @@ export const Header: React.FC = () => {
               )}
             </button>
 
-            {/* Admin Profile Account Setup */}
+            {/* User Profile / Supabase Auth Button */}
             <div className="relative">
               <button
                 onClick={() => {
@@ -105,12 +105,18 @@ export const Header: React.FC = () => {
                     handleNavClick(NavTab.DASHBOARD);
                   }
                 }}
-                className={`flex items-center gap-1 p-1.5 rounded-full border transition-all duration-200 border-white/20 hover:border-white/40 text-white bg-white/5 hover:bg-white/10`}
-                title={currentUser ? "Admin Session Tools" : "Admin Login Panel"}
+                className={`flex items-center gap-1.5 p-1.5 px-2.5 rounded-full border transition-all duration-200 ${
+                  currentUser
+                    ? currentUser.role === 'admin'
+                      ? 'border-emerald-400/40 text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60'
+                      : 'border-honey-gold/40 text-honey-gold bg-honey-gold/10 hover:bg-honey-gold/20'
+                    : 'border-white/20 hover:border-white/40 text-white bg-white/5 hover:bg-white/10'
+                }`}
+                title={currentUser ? (currentUser.role === 'admin' ? "Admin Management" : "My Account") : "Sign In with Supabase"}
               >
-                <User size={18} />
-                <span className="hidden lg:block text-xs font-semibold px-1">
-                  {currentUser ? 'Admin Active' : 'Admin Login'}
+                <User size={17} />
+                <span className="hidden lg:block text-xs font-semibold">
+                  {currentUser ? (currentUser.role === 'admin' ? 'Admin Active' : (currentUser.name.split(' ')[0] || 'My Account')) : 'Sign In'}
                 </span>
               </button>
 
@@ -122,27 +128,53 @@ export const Header: React.FC = () => {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute right-0 mt-2 w-72 origin-top-right rounded-xl bg-white dark:bg-charcoal border border-honey-brown/15 dark:border-honey-gold/15 p-4 shadow-xl z-20"
+                      className="absolute right-0 mt-2 w-72 origin-top-right rounded-2xl bg-white dark:bg-charcoal border border-honey-brown/15 dark:border-honey-gold/15 p-4 shadow-2xl z-20"
                     >
                       <div>
                         <div className="border-b border-honey-brown/10 pb-3 mb-3">
-                          <p className="text-xs text-honey-brown/60 dark:text-honey-warm/60">Logged in as Administrator</p>
+                          <p className="text-[11px] text-honey-brown/60 dark:text-honey-warm/60">
+                            {currentUser.role === 'admin' ? 'Administrator Account' : 'Customer Account'}
+                          </p>
                           <h4 className="text-sm font-bold text-honey-brown dark:text-honey-gold">{currentUser.name}</h4>
-                          <p className="text-[11px] text-honey-brown/80 dark:text-honey-warm/70 truncate">{currentUser.email}</p>
-                          <span className="inline-block text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full mt-1.5 bg-forest-green text-white">
-                            Session Status: Authorized
+                          <p className="text-[11px] text-honey-brown/80 dark:text-honey-warm/70 truncate">{currentUser.email || currentUser.phone}</p>
+                          <span className={`inline-block text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full mt-1.5 ${
+                            currentUser.role === 'admin' ? 'bg-forest-green text-white' : 'bg-honey-gold/20 text-honey-brown dark:text-honey-gold'
+                          }`}>
+                            {currentUser.role === 'admin' ? '🛡️ Farm Admin' : '🐝 Supabase Auth Active'}
                           </span>
                         </div>
 
                         <div className="space-y-1">
+                          {currentUser.role === 'admin' && (
+                            <button
+                              onClick={() => {
+                                handleNavClick(NavTab.ADMIN);
+                                setProfileDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-forest-green bg-forest-green/5 hover:bg-forest-green/10 transition-colors flex items-center gap-1.5"
+                            >
+                              🛠️ Admin Control Panel
+                            </button>
+                          )}
+
                           <button
                             onClick={() => {
-                              handleNavClick(NavTab.ADMIN);
+                              handleNavClick(NavTab.DASHBOARD);
                               setProfileDropdownOpen(false);
                             }}
-                            className="w-full text-left px-2.5 py-1.5 rounded text-xs font-semibold text-forest-green bg-forest-green/5 hover:bg-forest-green/10 transition-colors"
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-honey-brown dark:text-honey-warm hover:bg-honey-warm/10 transition-colors"
                           >
-                            🛠️ Admin Control Panel
+                            👤 View Profile & Addresses
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              handleNavClick(NavTab.SHOP);
+                              setProfileDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-honey-brown dark:text-honey-warm hover:bg-honey-warm/10 transition-colors"
+                          >
+                            🍯 Browse Honey Shop
                           </button>
 
                           <button
@@ -150,9 +182,9 @@ export const Header: React.FC = () => {
                               logout();
                               setProfileDropdownOpen(false);
                             }}
-                            className="w-full text-left flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium text-red-500 hover:bg-red-500/5 transition-colors border-t border-honey-brown/5 mt-2"
+                            className="w-full text-left flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-500/10 transition-colors border-t border-honey-brown/5 mt-2 pt-2"
                           >
-                            <LogOut size={12} /> Sign Out Session
+                            <LogOut size={12} /> Sign Out
                           </button>
                         </div>
                       </div>

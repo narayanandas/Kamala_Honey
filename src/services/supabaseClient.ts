@@ -1,20 +1,23 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Retrieve Supabase credentials safely from Vite env parameters
-const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
+// Retrieve Supabase credentials safely from Vite env parameters with active credentials support
+const rawUrl = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://ragjnpnnvaonzyfxupaw.supabase.co';
+const rawKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'sb_publishable_PLQhCPIzXZBOF9zwULuTBA_gjX1k1VI';
+
+// Sanitize URL: Remove trailing /rest/v1 or slashes so Supabase JS client constructs correct endpoints
+const cleanUrl = rawUrl.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+const cleanKey = rawKey.trim();
 
 export const isSupabaseConfigured = !!(
-  supabaseUrl &&
-  supabaseAnonKey &&
-  !supabaseUrl.includes('placeholder') &&
-  !supabaseAnonKey.includes('placeholder') &&
-  supabaseUrl.trim() !== '' &&
-  supabaseAnonKey.trim() !== ''
+  cleanUrl &&
+  cleanKey &&
+  !cleanUrl.includes('placeholder') &&
+  !cleanKey.includes('placeholder') &&
+  cleanUrl.startsWith('http')
 );
 
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(cleanUrl, cleanKey)
   : null;
 
 /**

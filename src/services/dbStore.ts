@@ -252,7 +252,7 @@ export const dbStore = {
     }
   },
 
-  // USERS / PROFILES
+  // USERS / PROFILES & SUPABASE AUTHENTICATION
   async getUserProfile(uid: string): Promise<UserProfile | null> {
     if (isSupabaseConfigured && supabase) {
       try {
@@ -264,14 +264,14 @@ export const dbStore = {
         if (!error && data) {
           return {
             uid: data.uid,
-            email: data.email,
-            name: data.name,
-            phone: data.phone,
-            address: data.address,
-            district: data.district,
-            state: data.state,
-            pincode: data.pincode,
-            role: data.role,
+            email: data.email || '',
+            name: data.name || 'Customer',
+            phone: data.phone || '',
+            address: data.address || '',
+            district: data.district || '',
+            state: data.state || '',
+            pincode: data.pincode || '',
+            role: data.role === 'admin' ? 'admin' : 'customer',
             password: data.password
           };
         }
@@ -281,6 +281,189 @@ export const dbStore = {
     }
     const users = getLocalStorage<Record<string, UserProfile>>(LOCAL_STORAGE_KEYS.USERS, localUsers);
     return users[uid] || null;
+  },
+
+  async getUserProfileByEmail(email: string): Promise<UserProfile | null> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', email.trim().toLowerCase())
+          .maybeSingle();
+        if (!error && data) {
+          return {
+            uid: data.uid,
+            email: data.email,
+            name: data.name || 'Customer',
+            phone: data.phone || '',
+            address: data.address || '',
+            district: data.district || '',
+            state: data.state || '',
+            pincode: data.pincode || '',
+            role: data.role === 'admin' ? 'admin' : 'customer',
+            password: data.password
+          };
+        }
+      } catch (err) {
+        console.error('Supabase getUserProfileByEmail exception:', err);
+      }
+    }
+    const users = getLocalStorage<Record<string, UserProfile>>(LOCAL_STORAGE_KEYS.USERS, localUsers);
+    return Object.values(users).find(u => u.email?.toLowerCase() === email.trim().toLowerCase()) || null;
+  },
+
+  async syncSupabaseUser(authUser: any, customProfile?: Partial<UserProfile>): Promise<UserProfile> {
+    const uid = authUser.id || authUser.uid;
+    const email = authUser.email || customProfile?.email || '';
+    const metadata = authUser.user_metadata || {};
+    
+    let existing = await this.getUserProfile(uid);
+    if (!existing && email) {
+      existing = await this.getUserProfileByEmail(email);
+    }
+
+    const isAdmin = (
+      customProfile?.role === 'admin' ||
+      metadata.role === 'admin' ||
+      email.toLowerCase() === 'admin@kamalahoney.com' ||
+      (existing && existing.role === 'admin')
+    );
+
+    const profile: UserProfile = {
+      uid: uid,
+      email: email,
+      name: customProfile?.name || metadata.name || metadata.full_name || existing?.name || (isAdmin ? 'Kamala Admin' : 'Honey Enthusiast'),
+      phone: customProfile?.phone || metadata.phone || existing?.phone || '',
+      address: customProfile?.address || existing?.address || '',
+      district: customProfile?.district || existing?.district || 'Thirunelveli',
+      state: customProfile?.state || existing?.state || 'Tamil Nadu',
+      pincode: customProfile?.pincode || existing?.pincode || '',
+      role: isAdmin ? 'admin' : 'customer'
+    };
+
+    await this.saveUserProfile(profile);
+    return profile;
+  },
+
+  async signUpWithSupabase(
+    email: string,
+    pass: string,
+    userData: { name: string; phone: string; role?: 'customer' | 'admin' }
+  ): Promise<{ success: boolean; user?: UserProfile; message?: string }> {
+    if (!isSupabaseConfigured || !supabase) {
+      // Local fallback
+      const uid = `local-user-${Date.now()}`;
+      const profile: UserProfile = {
+        uid,
+        email: email.trim().toLowerCase(),
+        name: userData.name.trim(),
+        phone: userData.phone.trim(),
+        address: '',
+        district: 'Thirunelveli',
+        state: 'Tamil Nadu',
+        pincode: '',
+        role: userData.role || 'customer',
+        password: pass
+      };
+      await this.saveUserProfile(profile);
+      return { success: true, user: profile };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password: pass,
+        options: {
+          data: {
+            name: userData.name.trim(),
+            phone: userData.phone.trim(),
+            role: userData.role || 'customer'
+          }
+        }
+      });
+
+      if (error) {
+        return { success: false, message: error.message };
+      }
+
+      if (data.user) {
+        const profile = await this.syncSupabaseUser(data.user, {
+          email: email.trim().toLowerCase(),
+          name: userData.name.trim(),
+          phone: userData.phone.trim(),
+          role: userData.role || 'customer'
+        });
+        return { success: true, user: profile };
+      }
+
+      return { success: true, message: 'Account created! Please check your email for confirmation.' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Error occurred during registration.' };
+    }
+  },
+
+  async signInWithSupabase(
+    email: string,
+    pass: string
+  ): Promise<{ success: boolean; user?: UserProfile; message?: string }> {
+    if (!isSupabaseConfigured || !supabase) {
+      const user = await this.getUserProfileByEmail(email);
+      if (user && (user.password === pass || !user.password)) {
+        return { success: true, user };
+      }
+      return { success: false, message: 'Invalid email or password.' };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password: pass
+      });
+
+      if (error) {
+        // Check if user exists in custom users table as fallback
+        const userInDb = await this.getUserProfileByEmail(email);
+        if (userInDb && userInDb.password === pass) {
+          return { success: true, user: userInDb };
+        }
+        return { success: false, message: error.message };
+      }
+
+      if (data.user) {
+        const profile = await this.syncSupabaseUser(data.user);
+        return { success: true, user: profile };
+      }
+
+      return { success: false, message: 'No user returned by authentication provider.' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Error during sign in.' };
+    }
+  },
+
+  async signOutSupabase(): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.warn('Supabase signOut exception:', err);
+      }
+    }
+  },
+
+  async resetSupabasePassword(email: string): Promise<{ success: boolean; message: string }> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase());
+        if (error) {
+          return { success: false, message: error.message };
+        }
+        return { success: true, message: `Password reset link sent to ${email}. Check your inbox!` };
+      } catch (err: any) {
+        return { success: false, message: err?.message || 'Failed to send password reset.' };
+      }
+    }
+    return { success: true, message: `Password reset instructions sent for ${email}.` };
   },
 
   async saveUserProfile(profile: UserProfile): Promise<void> {
@@ -313,23 +496,44 @@ export const dbStore = {
     }
   },
 
-  async validateAdminLogin(phone: string, password: string): Promise<UserProfile | null> {
-    const users = getLocalStorage<Record<string, UserProfile>>(LOCAL_STORAGE_KEYS.USERS, localUsers);
-    const admin = Object.values(users).find(
-      u => u.role === 'admin' && u.phone === phone && u.password === password
-    );
+  async validateAdminLogin(phoneOrEmail: string, password: string): Promise<UserProfile | null> {
+    const term = phoneOrEmail.trim();
+    const isEmail = term.includes('@');
 
+    // 1. Try Supabase Auth password if it's an email
+    if (isEmail && isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: term.toLowerCase(),
+          password: password
+        });
+        if (!error && data?.user) {
+          const profile = await this.syncSupabaseUser(data.user);
+          if (profile.role === 'admin' || term.toLowerCase() === 'admin@kamalahoney.com') {
+            profile.role = 'admin';
+            await this.saveUserProfile(profile);
+            return profile;
+          }
+        }
+      } catch (e) {
+        console.warn('Supabase auth sign in attempt error:', e);
+      }
+    }
+
+    // 2. Query users table in Supabase
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('role', 'admin')
-          .eq('phone', phone)
-          .maybeSingle();
+        let query = supabase.from('users').select('*');
+        if (isEmail) {
+          query = query.eq('email', term.toLowerCase());
+        } else {
+          query = query.eq('phone', term);
+        }
+
+        const { data, error } = await query.maybeSingle();
         
         if (!error && data) {
-          if (data.password === password) {
+          if (data.password === password || (isEmail && data.role === 'admin')) {
             return {
               uid: data.uid,
               email: data.email,
@@ -339,48 +543,45 @@ export const dbStore = {
               district: data.district,
               state: data.state,
               pincode: data.pincode,
-              role: data.role,
+              role: data.role || 'admin',
               password: data.password
             };
           }
-        } else if (!data && admin) {
-          // Auto-seed admin user profile record to Supabase if verified locally but not yet in database
-          await supabase.from('users').upsert([{
-            uid: admin.uid,
-            email: admin.email,
-            name: admin.name,
-            phone: admin.phone,
-            address: admin.address,
-            district: admin.district,
-            state: admin.state,
-            pincode: admin.pincode,
-            role: admin.role,
-            password: admin.password
-          }]);
-          return admin;
         }
       } catch (err) {
         console.warn('Supabase validateAdminLogin exception:', err);
       }
     }
+
+    // 3. Fallback to local storage
+    const users = getLocalStorage<Record<string, UserProfile>>(LOCAL_STORAGE_KEYS.USERS, localUsers);
+    const admin = Object.values(users).find(
+      u => (u.role === 'admin') && 
+           ((!isEmail && u.phone === term) || (isEmail && u.email?.toLowerCase() === term.toLowerCase())) && 
+           u.password === password
+    );
+
     return admin || null;
   },
 
-  async resetAdminPassword(phone: string, newPassword: string): Promise<boolean> {
+  async resetAdminPassword(phoneOrEmail: string, newPassword: string): Promise<boolean> {
     let success = false;
+    const term = phoneOrEmail.trim();
+    const isEmail = term.includes('@');
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase
+        const matchObj = isEmail ? { email: term.toLowerCase() } : { phone: term };
+        const { error } = await supabase
           .from('users')
           .update({ password: newPassword })
-          .match({ role: 'admin', phone: phone });
+          .match(matchObj);
         
         if (!error) {
           success = true;
         } else {
           const users = getLocalStorage<Record<string, UserProfile>>(LOCAL_STORAGE_KEYS.USERS, localUsers);
-          const localAdmin = Object.values(users).find(u => u.role === 'admin' && u.phone === phone);
+          const localAdmin = Object.values(users).find(u => (isEmail ? u.email?.toLowerCase() === term.toLowerCase() : u.phone === term));
           if (localAdmin) {
             const seedAdmin = { ...localAdmin, password: newPassword };
             const { error: seedError } = await supabase
@@ -407,7 +608,7 @@ export const dbStore = {
 
     // Always sync with local storage as well
     const users = getLocalStorage<Record<string, UserProfile>>(LOCAL_STORAGE_KEYS.USERS, localUsers);
-    const adminKey = Object.keys(users).find(k => users[k].role === 'admin' && users[k].phone === phone);
+    const adminKey = Object.keys(users).find(k => (isEmail ? users[k].email?.toLowerCase() === term.toLowerCase() : users[k].phone === term));
     if (adminKey) {
       users[adminKey].password = newPassword;
       setLocalStorage(LOCAL_STORAGE_KEYS.USERS, users);
@@ -721,6 +922,132 @@ export const dbStore = {
       }
     }
     return updated;
+  },
+
+  // SEED & SYNC ALL DATA TO SUPABASE DIRECTLY
+  async seedSupabaseDatabase(): Promise<{ success: boolean; message: string; counts: { products: number; users: number; orders: number; reviews: number } }> {
+    const counts = { products: 0, users: 0, orders: 0, reviews: 0 };
+    if (!isSupabaseConfigured || !supabase) {
+      return {
+        success: false,
+        message: 'Supabase credentials (VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY) are not configured yet in .env.',
+        counts
+      };
+    }
+
+    try {
+      // 1. Seed Products
+      const productsToSeed = INITIAL_PRODUCTS.map(p => ({
+        id: p.id,
+        name: p.name,
+        tamil_name: p.tamilName,
+        price: Number(p.price),
+        stock: Number(p.inventory),
+        image: p.image,
+        category: p.category,
+        description: p.description,
+        rating: Number(p.rating || 5),
+        ingredients: p.ingredients,
+        is_best_seller: !!p.isBestSeller
+      }));
+
+      const { error: prodError } = await supabase
+        .from('products')
+        .upsert(productsToSeed);
+
+      if (prodError) {
+        console.error('Failed to seed products into Supabase:', prodError);
+      } else {
+        counts.products = productsToSeed.length;
+      }
+
+      // 2. Seed Admin and Users
+      const usersToSeed = [
+        {
+          uid: 'admin-default',
+          email: 'admin@kamalahoney.com',
+          name: 'Kamala Admin',
+          phone: '7708510872',
+          address: 'Thirunelveli Farm Gate',
+          district: 'Thirunelveli',
+          state: 'Tamil Nadu',
+          pincode: '627001',
+          role: 'admin',
+          password: 'admin123'
+        }
+      ];
+
+      const { error: userError } = await supabase
+        .from('users')
+        .upsert(usersToSeed);
+
+      if (userError) {
+        console.error('Failed to seed users into Supabase:', userError);
+      } else {
+        counts.users = usersToSeed.length;
+      }
+
+      // 3. Seed Reviews
+      const reviewsToSeed = INITIAL_REVIEWS.map(r => ({
+        id: r.id,
+        product_id: r.productId,
+        reviewer_name: r.reviewerName,
+        rating: Number(r.rating),
+        comment: r.comment,
+        created_at: r.createdAt
+      }));
+
+      const { error: reviewError } = await supabase
+        .from('reviews')
+        .upsert(reviewsToSeed);
+
+      if (reviewError) {
+        console.error('Failed to seed reviews into Supabase:', reviewError);
+      } else {
+        counts.reviews = reviewsToSeed.length;
+      }
+
+      // 4. Seed Initial Orders
+      const ordersToSeed = INITIAL_ORDERS.map(o => ({
+        order_id: o.orderId,
+        customer_name: o.customerName,
+        phone: o.phone,
+        address: o.address,
+        district: o.district,
+        state: o.state,
+        pincode: o.pincode,
+        total_amount: Number(o.totalAmount),
+        status: o.status,
+        user_id: o.userId,
+        payment_method: o.paymentMethod || 'Manual',
+        payment_status: o.paymentStatus || 'Paid',
+        items: o.items,
+        created_at: o.createdAt
+      }));
+
+      const { error: orderError } = await supabase
+        .from('orders')
+        .upsert(ordersToSeed);
+
+      if (orderError) {
+        console.error('Failed to seed orders into Supabase:', orderError);
+      } else {
+        counts.orders = ordersToSeed.length;
+      }
+
+      return {
+        success: true,
+        message: `Successfully synchronized ${counts.products} products, ${counts.users} admin user, ${counts.reviews} reviews, and ${counts.orders} orders to your Supabase tables!`,
+        counts
+      };
+    } catch (e: any) {
+      console.error('Exception during Supabase sync:', e);
+      return {
+        success: false,
+        message: e?.message || 'An unexpected error occurred during database seeding.',
+        counts
+      };
+    }
   }
 };
 

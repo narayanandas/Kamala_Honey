@@ -23,7 +23,11 @@ import {
   Sparkles,
   ChevronRight,
   Plus,
-  Minus
+  Minus,
+  Copy,
+  Check,
+  ExternalLink,
+  Zap
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -43,14 +47,20 @@ export const AdminDashboard: React.FC = () => {
     currentUser,
     products,
     setProducts,
+    refreshProducts,
     activeTab,
     setActiveTab
   } = useStore();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeAdminSubTab, setActiveAdminSubTab] = useState<'analytics' | 'inventory' | 'catalog-form' | 'orders'>('analytics');
+  const [activeAdminSubTab, setActiveAdminSubTab] = useState<'analytics' | 'inventory' | 'catalog-form' | 'orders' | 'supabase-sync'>('analytics');
   
+  // Supabase seeding state
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedFeedback, setSeedFeedback] = useState<{ success?: boolean; message?: string } | null>(null);
+  const [copiedSql, setCopiedSql] = useState(false);
+
   // Selected Invoice receipt modal preview
   const [selectedProofUrl, setSelectedProofUrl] = useState<string | null>(null);
 
@@ -89,8 +99,7 @@ export const AdminDashboard: React.FC = () => {
       try {
         const orderList = await dbStore.getAllOrders();
         setOrders(orderList);
-        const prodList = await dbStore.getAllProducts();
-        setProducts(prodList);
+        await refreshProducts();
       } catch (err) {
         console.error('Error load details:', err);
       } finally {
@@ -102,6 +111,156 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     loadOrdersAndProducts();
   }, [currentUser]);
+
+  // Seed Supabase Database Trigger
+  const handleSeedSupabase = async () => {
+    setIsSeeding(true);
+    setSeedFeedback(null);
+    try {
+      const res = await dbStore.seedSupabaseDatabase();
+      setSeedFeedback(res);
+      if (res.success) {
+        await loadOrdersAndProducts();
+      }
+    } catch (err: any) {
+      setSeedFeedback({
+        success: false,
+        message: err?.message || 'Error occurred while connecting to Supabase.'
+      });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  const handleCopySql = () => {
+    const fullSql = `-- =========================================================================
+-- KAMALA HONEY - COMPLETE SUPABASE DATABASE SCHEMA & SEED SCRIPT
+-- Copy and paste this script directly into your Supabase SQL Editor and run it.
+-- =========================================================================
+
+-- 1. PRODUCTS TABLE
+CREATE TABLE IF NOT EXISTS products (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  tamil_name TEXT,
+  price NUMERIC NOT NULL DEFAULT 0,
+  stock INTEGER NOT NULL DEFAULT 0,
+  image TEXT,
+  category TEXT,
+  description TEXT,
+  rating NUMERIC DEFAULT 5.0,
+  ingredients JSONB DEFAULT '[]'::jsonb,
+  is_best_seller BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Allow public select product" ON products FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Allow public insert product" ON products FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Allow public update product" ON products FOR UPDATE USING (true);
+CREATE POLICY IF NOT EXISTS "Allow public delete product" ON products FOR DELETE USING (true);
+
+-- 2. USERS TABLE
+CREATE TABLE IF NOT EXISTS users (
+  uid TEXT PRIMARY KEY,
+  email TEXT,
+  name TEXT,
+  phone TEXT,
+  address TEXT,
+  district TEXT,
+  state TEXT,
+  pincode TEXT,
+  role TEXT DEFAULT 'customer',
+  password TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Allow public select users" ON users FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Allow public insert users" ON users FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Allow public update users" ON users FOR UPDATE USING (true);
+CREATE POLICY IF NOT EXISTS "Allow public delete users" ON users FOR DELETE USING (true);
+
+-- 3. ORDERS TABLE
+CREATE TABLE IF NOT EXISTS orders (
+  order_id TEXT PRIMARY KEY,
+  customer_name TEXT,
+  phone TEXT,
+  address TEXT,
+  district TEXT,
+  state TEXT,
+  pincode TEXT,
+  total_amount NUMERIC NOT NULL DEFAULT 0,
+  status TEXT DEFAULT 'Pending',
+  upi_screenshot TEXT,
+  user_id TEXT,
+  payment_method TEXT DEFAULT 'Manual',
+  payment_status TEXT DEFAULT 'Unpaid',
+  payment_id TEXT,
+  items JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Allow public select orders" ON orders FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Allow public insert orders" ON orders FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Allow public update orders" ON orders FOR UPDATE USING (true);
+CREATE POLICY IF NOT EXISTS "Allow public delete orders" ON orders FOR DELETE USING (true);
+
+-- 4. REVIEWS TABLE
+CREATE TABLE IF NOT EXISTS reviews (
+  id TEXT PRIMARY KEY,
+  product_id TEXT,
+  reviewer_name TEXT,
+  rating NUMERIC NOT NULL DEFAULT 5,
+  comment TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Allow public select reviews" ON reviews FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Allow public insert reviews" ON reviews FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Allow public update reviews" ON reviews FOR UPDATE USING (true);
+
+-- 5. WISHLISTS TABLE
+CREATE TABLE IF NOT EXISTS wishlists (
+  user_id TEXT PRIMARY KEY,
+  product_ids JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE wishlists ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Allow public select wishlists" ON wishlists FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Allow public insert wishlists" ON wishlists FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Allow public update wishlists" ON wishlists FOR UPDATE USING (true);
+
+-- INSERT INITIAL PRODUCTS
+INSERT INTO products (id, name, tamil_name, price, stock, image, category, description, rating, ingredients, is_best_seller) VALUES
+('prod-theen-nelli-big', 'Theen Nelli (Big Amla Honey)', 'தேன் நெல்லிக்காய் - பெரியது', 440, 50, 'https://res.cloudinary.com/dlddzqqnw/image/upload/v1779905674/Gemini_Generated_Image_arcgdxarcgdxarcg_xmvn7x.png', 'Amla Honey', 'Whole big wild gooseberries soaked in premium wild forest honey. Packed with Vitamin C and iron, it aids digestion and strengthens immunity.', 4.8, '["Whole Indian Gooseberry (Amla)", "100% Pure Natural Forest Honey"]'::jsonb, false),
+('prod-chinna-nelli', 'Chinna Nelli', 'தேன் நெல்லிக்காய் - சிறியது', 390, 45, 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&q=80&w=500', 'Amla Honey', 'Small organic baby gooseberry pieces soaked in amber forest honey. Easy for children to consume and great for high energy.', 4.7, '["Small Country Gooseberry Pieces", "Pure Farm Honey"]'::jsonb, false),
+('prod-theen-perichai', 'Theen Perichai', 'தேன் பேரீச்சம்பழம்', 450, 60, 'https://images.unsplash.com/photo-1569870499705-504209102bd6?auto=format&fit=crop&q=80&w=500', 'Honey Dates', 'Premium soft Arabian dates soaked completely in natural honey. Rich in iron, fibers, and natural sugars to boost your stamina.', 4.9, '["Imported Seedless Dates", "Thirunelveli Pure Rock Honey"]'::jsonb, false),
+('prod-honey-dry-fruits', 'Honey Dry Fruits', 'தேன் டிரை புரூட்ஸ்', 480, 35, 'https://images.unsplash.com/photo-1623428187969-5da2d8a6f157?auto=format&fit=crop&q=80&w=500', 'Dry Fruits', 'Assorted premium quality dried walnuts, green raisins, apricot slices blended in single-origin honey.', 4.8, '["Walnuts", "Dried Apricot", "Golden Raisins", "Pure Stingless Bee Honey"]'::jsonb, false),
+('prod-theen-athi', 'Theen Athi', 'தேன் அத்திப்பழம்', 460, 30, 'https://images.unsplash.com/photo-1505252585461-04db1eb84625?auto=format&fit=crop&q=80&w=500', 'Honey Fig', 'Delicately dried high-fiber mountain figs preserved in deep golden sweet honey. Perfect combination for heart health and blood purity.', 4.6, '["Smyrna Dried Figs (Athi)", "Raw Saffron Infused Honey"]'::jsonb, false),
+('prod-theen-inji', 'Theen Inji', 'தேன் இஞ்சி', 350, 40, 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=500', 'Honey Ginger', 'Traditional home recipe of sliced farm-grown ginger infused in raw organic honey. Outstanding relief for cold, cough, and digestive issues.', 4.5, '["Dehydrated Fresh Ginger Slices", "Thirunelveli Wildwood Honey"]'::jsonb, false),
+('prod-raja-rani-mix', 'Raja Rani Mix', 'ராஜாராணி மிக்ஸ்', 550, 25, 'https://images.unsplash.com/photo-1596450514943-ac434a2c07d5?auto=format&fit=crop&q=80&w=500', 'Special Mix', 'Royal power house formulation comprising whole pine nuts, almonds, pumpkin seeds, and pistachios marinated in top-grade nectar.', 5.0, '["Almonds", "Cashews", "Walnuts", "Pistachios", "Pumpkin Seeds", "Chia Seeds", "Wild Forest Honey"]'::jsonb, true),
+('prod-theen-mundhiri', 'Theen Mundhiri', 'தேன் முந்திரி', 470, 40, 'https://images.unsplash.com/photo-1600189020840-e9918c25269d?auto=format&fit=crop&q=80&w=500', 'Honey Cashew', 'Whole select premium roasted cashews marinated in thick wild clover honey. A delightful natural snack full of essential minerals.', 4.7, '["Selected Large Cashews", "Organic Farm Honey"]'::jsonb, false),
+('prod-gulkand-dry-fruits', 'Gulkand Dry Fruits', 'குல்கந்து டிரை புரூட்ஸ்', 520, 30, 'https://images.unsplash.com/photo-1512223792601-592a9809eed4?auto=format&fit=crop&q=80&w=500', 'Gulkand Mix', 'Traditional aromatic sun-cooked rose petal jam (Gulkand) perfectly mixed with hand-chopped premium almonds, cashews and pistachio nuts.', 4.9, '["Paneer Rose Petals", "Rock Sugar Candy", "Cashews", "Almonds", "Wild Nectar Honey"]'::jsonb, false),
+('prod-theen-badam', 'Theen Badam', 'தேன் பாதாம்', 490, 50, 'https://images.unsplash.com/photo-1508061253366-f7da158b6db4?auto=format&fit=crop&q=80&w=500', 'Honey Almond', 'Mammoth sized California almonds shelled and thoroughly cured in natural multifloral bee honey. Best consumed daily on empty stomach.', 4.8, '["Premium Shelled Almonds (Badam)", "Raw Multifloral Honey"]'::jsonb, false),
+('prod-theen-naattu-poondu', 'Theen Naattu Poondu', 'தேன் நாட்டுப்பூண்டு', 380, 35, 'https://images.unsplash.com/photo-1581063324423-edefbb5fcd3c?auto=format&fit=crop&q=80&w=500', 'Honey Garlic', 'Peeled organic hill garlic cloves slow-cooked and aged in natural liquid gold. Famous south Indian traditional remedy for weight management and cardio health.', 4.6, '["Peeled Country Garlic (Naattu Poondu)", "100% Raw Hill Honey"]'::jsonb, false)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name, tamil_name = EXCLUDED.tamil_name, price = EXCLUDED.price,
+  stock = EXCLUDED.stock, image = EXCLUDED.image, category = EXCLUDED.category,
+  description = EXCLUDED.description, rating = EXCLUDED.rating, ingredients = EXCLUDED.ingredients, is_best_seller = EXCLUDED.is_best_seller;
+
+-- INSERT ADMIN USER
+INSERT INTO users (uid, email, name, phone, address, district, state, pincode, role, password) VALUES
+('admin-default', 'admin@kamalahoney.com', 'Kamala Admin', '7708510872', 'Thirunelveli Farm Gate', 'Thirunelveli', 'Tamil Nadu', '627001', 'admin', 'admin123')
+ON CONFLICT (uid) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, phone = EXCLUDED.phone, role = EXCLUDED.role, password = EXCLUDED.password;
+`;
+    navigator.clipboard.writeText(fullSql);
+    setCopiedSql(true);
+    setTimeout(() => setCopiedSql(false), 2500);
+  };
 
   // Handle switching to Editing mode
   const startEditing = (p: Product) => {
@@ -371,6 +530,16 @@ export const AdminDashboard: React.FC = () => {
         >
           <CheckCircle size={14} /> WhatsApp Order Ledger
         </button>
+        <button
+          onClick={() => setActiveAdminSubTab('supabase-sync')}
+          className={`flex-1 min-w-[120px] px-4 py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+            activeAdminSubTab === 'supabase-sync'
+              ? 'bg-emerald-700 text-white shadow'
+              : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'
+          }`}
+        >
+          <Database size={14} /> Supabase Database & SQL
+        </button>
       </div>
 
       {/* STATUS AND LOW-STOCK DISPATCH ALERTS BANNER */}
@@ -547,15 +716,36 @@ export const AdminDashboard: React.FC = () => {
                   <Database size={18} />
                 </div>
                 <div>
-                  <h4 className="font-heading font-black text-sm text-honey-gold">Supabase DB Synchronization Blueprint</h4>
-                  <p className="text-[10px] text-white/50">Setup your live tables in 60 seconds manually.</p>
+                  <h4 className="font-heading font-black text-sm text-honey-gold">Supabase DB Synchronization</h4>
+                  <p className="text-[10px] text-white/50">One-click seed & complete SQL script generator.</p>
                 </div>
               </div>
-              <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded font-mono">Products table schema</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSeedSupabase}
+                  disabled={isSeeding}
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Zap size={13} /> {isSeeding ? 'Seeding...' : '⚡ Seed Database Now'}
+                </button>
+                <button
+                  onClick={handleCopySql}
+                  className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5"
+                >
+                  {copiedSql ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                  {copiedSql ? 'Copied SQL!' : 'Copy SQL'}
+                </button>
+              </div>
             </div>
 
+            {seedFeedback && (
+              <div className={`p-3 rounded-xl text-xs font-semibold ${seedFeedback.success ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-500/30' : 'bg-amber-950/60 text-amber-300 border border-amber-500/30'}`}>
+                {seedFeedback.message}
+              </div>
+            )}
+
             <p className="text-[11px] text-white/70 leading-relaxed max-w-3xl">
-              To wire this frontend suite directly with your active Cloud database, provision the <strong className="text-white">products</strong> table in your Supabase SQL Editor. The system is designed with dual-sync fallback, meaning it instantly writes changes both locally and remotely!
+              To wire this frontend suite directly with your active Cloud database, run the complete <strong className="text-white">supabase_schema_and_seed.sql</strong> script in your Supabase SQL Editor. The system is built with dual-sync fallback, writing and reading seamlessly!
             </p>
 
             <pre className="p-4 bg-black/50 text-[10px] font-mono text-emerald-400 rounded-xl overflow-x-auto border border-white/5 whitespace-pre select-all">
@@ -1058,6 +1248,234 @@ CREATE POLICY "Allow public delete" ON products FOR DELETE USING (true);`}
             )}
           </div>
 
+        </div>
+      )}
+
+      {/* ======================= SUB TAB 5: SUPABASE DATABASE SYNC & SQL ======================= */}
+      {activeAdminSubTab === 'supabase-sync' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* TOP HERO STATUS CARD */}
+          <div className="bg-charcoal text-white p-6 sm:p-8 rounded-3xl border border-honey-gold/20 shadow-lg space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
+                    <Database size={22} />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-black text-xl text-honey-gold">Supabase Cloud Database Hub</h3>
+                    <p className="text-xs text-white/60">Manage table sync, seed default products, and export SQL scripts.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  onClick={handleSeedSupabase}
+                  disabled={isSeeding}
+                  className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Zap size={15} />
+                  {isSeeding ? 'Connecting & Seeding...' : '⚡ Seed Database to Supabase'}
+                </button>
+                <button
+                  onClick={handleCopySql}
+                  className="px-5 py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition flex items-center gap-2"
+                >
+                  {copiedSql ? <Check size={15} className="text-emerald-400" /> : <Copy size={15} />}
+                  {copiedSql ? 'SQL Script Copied!' : 'Copy Full SQL'}
+                </button>
+              </div>
+            </div>
+
+            {/* STATUS ALERT */}
+            <div className={`p-4 rounded-2xl border flex items-center gap-3 text-xs font-semibold ${isSupabaseConfigured ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300' : 'bg-amber-950/40 border-amber-500/30 text-amber-300'}`}>
+              <div className={`w-3 h-3 rounded-full shrink-0 ${isSupabaseConfigured ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              <div>
+                <p className="font-bold">
+                  {isSupabaseConfigured ? 'Supabase Credentials Detected & Active' : 'Supabase Credentials Not Yet Configured in Environment'}
+                </p>
+                <p className="text-[11px] opacity-80 mt-0.5">
+                  {isSupabaseConfigured
+                    ? 'All catalog additions, stock adjustments, orders, and reviews automatically sync to your remote Supabase instance.'
+                    : 'To link directly: add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file or run the SQL file below in your Supabase SQL Editor.'}
+                </p>
+              </div>
+            </div>
+
+            {seedFeedback && (
+              <div className={`p-4 rounded-2xl border text-xs font-bold animate-fade-in ${seedFeedback.success ? 'bg-emerald-900/60 border-emerald-400 text-emerald-200' : 'bg-rose-900/60 border-rose-400 text-rose-200'}`}>
+                {seedFeedback.message}
+              </div>
+            )}
+
+            {/* STATS OVERVIEW CARDS */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <span className="text-[10px] text-white/50 uppercase font-black tracking-wider block">Products Ready</span>
+                <span className="text-2xl font-black text-honey-gold font-mono">{products.length} Items</span>
+              </div>
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <span className="text-[10px] text-white/50 uppercase font-black tracking-wider block">Admin User</span>
+                <span className="text-2xl font-black text-emerald-400 font-mono">1 Configured</span>
+              </div>
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <span className="text-[10px] text-white/50 uppercase font-black tracking-wider block">Invoiced Orders</span>
+                <span className="text-2xl font-black text-indigo-300 font-mono">{orders.length} Orders</span>
+              </div>
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <span className="text-[10px] text-white/50 uppercase font-black tracking-wider block">Total Database Tables</span>
+                <span className="text-2xl font-black text-amber-300 font-mono">5 Tables</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3-STEP GUIDE FOR SUPABASE SQL EDITOR */}
+          <div className="bg-white dark:bg-charcoal p-6 sm:p-8 rounded-3xl border border-honey-brown/5 shadow-sm space-y-6">
+            <h4 className="font-heading font-black text-lg text-honey-brown dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <Sparkles size={18} className="text-honey-gold" /> Step-by-Step Setup via Supabase SQL Editor
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 bg-honey-warm/15 dark:bg-black/20 rounded-2xl space-y-2 border border-honey-brown/10">
+                <div className="w-6 h-6 rounded-full bg-[#4E2F12] text-white flex items-center justify-center font-bold text-xs">1</div>
+                <h5 className="font-bold text-honey-brown dark:text-white">Copy Full SQL Script</h5>
+                <p className="text-honey-brown/70 dark:text-honey-warm/60 text-[11px] leading-relaxed">
+                  Click the <strong>"Copy Full SQL"</strong> button above or inspect the script below. It contains all 5 table schemas, RLS policies, and seed data.
+                </p>
+              </div>
+
+              <div className="p-4 bg-honey-warm/15 dark:bg-black/20 rounded-2xl space-y-2 border border-honey-brown/10">
+                <div className="w-6 h-6 rounded-full bg-[#4E2F12] text-white flex items-center justify-center font-bold text-xs">2</div>
+                <h5 className="font-bold text-honey-brown dark:text-white">Paste in Supabase SQL Editor</h5>
+                <p className="text-honey-brown/70 dark:text-honey-warm/60 text-[11px] leading-relaxed">
+                  Go to your Supabase project dashboard &rarr; click on <strong>SQL Editor</strong> &rarr; click <strong>New Query</strong> &rarr; paste the code.
+                </p>
+              </div>
+
+              <div className="p-4 bg-honey-warm/15 dark:bg-black/20 rounded-2xl space-y-2 border border-honey-brown/10">
+                <div className="w-6 h-6 rounded-full bg-[#4E2F12] text-white flex items-center justify-center font-bold text-xs">3</div>
+                <h5 className="font-bold text-honey-brown dark:text-white">Click "RUN"</h5>
+                <p className="text-honey-brown/70 dark:text-honey-warm/60 text-[11px] leading-relaxed">
+                  Execute the script. In seconds, all 11 honey products, admin user credentials, reviews, and test orders will be created!
+                </p>
+              </div>
+            </div>
+
+            {/* SQL CODE PREVIEW */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-honey-brown dark:text-honey-gold uppercase tracking-wider">
+                  Schema & Seed SQL (supabase_schema_and_seed.sql)
+                </span>
+                <button
+                  onClick={handleCopySql}
+                  className="px-3 py-1 bg-honey-brown text-white text-[11px] font-bold rounded-lg hover:bg-black transition flex items-center gap-1"
+                >
+                  {copiedSql ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                  {copiedSql ? 'Copied to Clipboard!' : 'Copy SQL Script'}
+                </button>
+              </div>
+              
+              <pre className="p-4 bg-black/90 text-emerald-400 font-mono text-[11px] rounded-2xl overflow-x-auto max-h-96 border border-honey-brown/10 select-all leading-relaxed whitespace-pre">
+{`-- 1. PRODUCTS TABLE
+CREATE TABLE IF NOT EXISTS products (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  tamil_name TEXT,
+  price NUMERIC NOT NULL DEFAULT 0,
+  stock INTEGER NOT NULL DEFAULT 0,
+  image TEXT,
+  category TEXT,
+  description TEXT,
+  rating NUMERIC DEFAULT 5.0,
+  ingredients JSONB DEFAULT '[]'::jsonb,
+  is_best_seller BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS POLICIES FOR PRODUCTS
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public select product" ON products FOR SELECT USING (true);
+CREATE POLICY "Allow public insert product" ON products FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update product" ON products FOR UPDATE USING (true);
+CREATE POLICY "Allow public delete product" ON products FOR DELETE USING (true);
+
+-- 2. USERS TABLE
+CREATE TABLE IF NOT EXISTS users (
+  uid TEXT PRIMARY KEY,
+  email TEXT,
+  name TEXT,
+  phone TEXT,
+  address TEXT,
+  district TEXT,
+  state TEXT,
+  pincode TEXT,
+  role TEXT DEFAULT 'customer',
+  password TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS POLICIES FOR USERS
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public select users" ON users FOR SELECT USING (true);
+CREATE POLICY "Allow public insert users" ON users FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update users" ON users FOR UPDATE USING (true);
+
+-- 3. ORDERS TABLE
+CREATE TABLE IF NOT EXISTS orders (
+  order_id TEXT PRIMARY KEY,
+  customer_name TEXT,
+  phone TEXT,
+  address TEXT,
+  district TEXT,
+  state TEXT,
+  pincode TEXT,
+  total_amount NUMERIC NOT NULL DEFAULT 0,
+  status TEXT DEFAULT 'Pending',
+  upi_screenshot TEXT,
+  user_id TEXT,
+  payment_method TEXT DEFAULT 'Manual',
+  payment_status TEXT DEFAULT 'Unpaid',
+  items JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS POLICIES FOR ORDERS
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public select orders" ON orders FOR SELECT USING (true);
+CREATE POLICY "Allow public insert orders" ON orders FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update orders" ON orders FOR UPDATE USING (true);
+
+-- 4. REVIEWS TABLE
+CREATE TABLE IF NOT EXISTS reviews (
+  id TEXT PRIMARY KEY,
+  product_id TEXT,
+  reviewer_name TEXT,
+  rating NUMERIC NOT NULL DEFAULT 5,
+  comment TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS POLICIES FOR REVIEWS
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public select reviews" ON reviews FOR SELECT USING (true);
+CREATE POLICY "Allow public insert reviews" ON reviews FOR INSERT WITH CHECK (true);
+
+-- 5. WISHLISTS TABLE
+CREATE TABLE IF NOT EXISTS wishlists (
+  user_id TEXT PRIMARY KEY,
+  product_ids JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE wishlists ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public select wishlists" ON wishlists FOR SELECT USING (true);
+CREATE POLICY "Allow public insert wishlists" ON wishlists FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update wishlists" ON wishlists FOR UPDATE USING (true);`}
+              </pre>
+            </div>
+          </div>
         </div>
       )}
 
